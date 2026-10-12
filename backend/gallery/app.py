@@ -6,6 +6,7 @@ Run:  uvicorn gallery.app:app --reload   (from the backend folder)
 from __future__ import annotations
 
 import asyncio
+from contextlib import asynccontextmanager
 import itertools
 import json
 import os
@@ -40,7 +41,13 @@ def _load_env() -> None:
 
 _load_env()
 
-app = FastAPI(title="The Gallery", version="0.1.0")
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    llm.provider()        # start the model provider early so Foundry Local can download/load while the console opens
+    yield
+
+
+app = FastAPI(title="The Gallery", version="0.2.0", lifespan=_lifespan)
 store = Store(str(DATA / "gallery.db"))
 runtimes: dict[str, MatchRuntime] = {}
 replay_events: dict[str, list[Event]] = {}
@@ -48,10 +55,7 @@ replay_corrections: dict[str, list[dict]] = {}
 _live_ids = itertools.count(1)
 
 
-@app.on_event("startup")
-def _start_model_provider() -> None:
-    """Start the model provider early so Foundry Local can download/load while the console opens."""
-    llm.provider()
+
 _match_ids = itertools.count(1)
 _bench_cache: dict[str, Any] = {}
 

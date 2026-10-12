@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+backend/data/gallery.db
+
+# Real match data (validation only): keep local, never publish. The hackathon requires synthetic data.
+backend/data/espn/
+backend/data/statsbomb/
+# Organiser data: check the hackathon rules before publishing (the example and docs are ours)
+backend/data/organiser/*
+!backend/data/organiser/README.md
+!backend/data/organiser/mapping.example.json
+!backend/data/organiser/example_synthetic_match.csv
+backend/data/foundry_cache/
+_to_delete/

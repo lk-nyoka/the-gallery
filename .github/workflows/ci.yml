@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Lint
+        run: ruff check backend
+      - name: Unit, adapter and agent tests
+        run: pytest -q
+      - name: Benchmark smoke test (synthetic data only)
+        working-directory: backend
+        run: python -m gallery.benchmark --quick
+      - name: Check no real-match data is committed
+        run: |
+          test ! -d backend/data/espn
+          test ! -d backend/data/statsbomb

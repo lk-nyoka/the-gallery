@@ -1,0 +1,1196 @@
+{
+  "run_at": "2026-10-12 20:19:59",
+  "real_matches": [],
+  "recent_matches": [],
+  "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "tuning_seeds": "100-111 (excluded from the benchmark)",
+  "writer": "template (deterministic)",
+  "fixtures": [
+    {
+      "fixture": "A",
+      "title": "Turning point",
+      "teams": "Northbridge FC v Riverside Athletic",
+      "final_score": {
+        "HOME": 1,
+        "AWAY": 2
+      },
+      "expected_score": {
+        "HOME": 1,
+        "AWAY": 2
+      },
+      "score_matches": true,
+      "patterns": [
+        {
+          "pattern": "momentum_shift",
+          "label": "early home dominance",
+          "minute": 9,
+          "detected": true
+        },
+        {
+          "pattern": "standout",
+          "label": "home playmaker",
+          "minute": 6,
+          "detected": true
+        },
+        {
+          "pattern": "counterattack",
+          "label": "away counter",
+          "minute": 77,
+          "detected": true
+        },
+        {
+          "pattern": "momentum_shift",
+          "label": null,
+          "minute": 65,
+          "detected": true
+        }
+      ],
+      "pattern_precision": {
+        "in_window": 4,
+        "correct_team": 4
+      },
+      "obligations": 4,
+      "covered": 4,
+      "missing": [],
+      "turning_points": 2,
+      "expected_turning_points": 1,
+      "claims_rechecked": 50,
+      "escapes": 0,
+      "red_team": {
+        "drafts": 0,
+        "caught_on_first_draft": 0,
+        "revised_to_verified": 0,
+        "verdicts": 0
+      },
+      "corrections": [],
+      "latency_ms": [
+        4.5,
+        4.8,
+        4.1,
+        3.7,
+        4.7,
+        4.1,
+        4.0,
+        3.4,
+        3.9,
+        4.0,
+        8.2,
+        9.3,
+        3.8,
+        5.1
+      ],
+      "package_ms": 1.9,
+      "package_items": 14,
+      "funnel": {
+        "insights": 16,
+        "storylines": 14,
+        "verified": 14,
+        "flagged": 0,
+        "blocked": 0,
+        "approved": 14,
+        "needs_correction": 0,
+        "rejected": 0
+      },
+      "agents": {
+        "Analyst": 56,
+        "Desk": 2,
+        "Editor-in-Chief": 16,
+        "Producer": 28,
+        "Verifier": 14,
+        "Writer": 14
+      },
+      "held_by_editor": 2,
+      "revisions": 0
+    },
+    {
+      "fixture": "B",
+      "title": "Correction",
+      "teams": "Harbour City v Eastvale Rovers",
+      "final_score": {
+        "HOME": 2,
+        "AWAY": 1
+      },
+      "expected_score": {
+        "HOME": 2,
+        "AWAY": 1
+      },
+      "score_matches": true,
+      "patterns": [
+        {
+          "pattern": "counterattack",
+          "label": "away counter",
+          "minute": 42,
+          "detected": true
+        },
+        {
+          "pattern": "momentum_shift",
+          "label": "away pressure",
+          "minute": 51,
+          "detected": true
+        }
+      ],
+      "pattern_precision": {
+        "in_window": 2,
+        "correct_team": 2
+      },
+      "obligations": 3,
+      "covered": 3,
+      "missing": [],
+      "turning_points": 0,
+      "expected_turning_points": 0,
+      "claims_rechecked": 45,
+      "escapes": 0,
+      "red_team": {
+        "drafts": 0,
+        "caught_on_first_draft": 0,
+        "revised_to_verified": 0,
+        "verdicts": 0
+      },
+      "corrections": [
+        {
+          "reason": "Feed correction: 29' goal re-credited from Adeyemi to Moreau",
+          "affected_flagged": 1,
+          "replacement_drafted": true,
+          "replacement_verified": true,
+          "replacement_text": "Moreau scores for Harbour City. It's Harbour City 1, Eastvale Rovers 0. The chance was worth 0.38 expected goals."
+        }
+      ],
+      "latency_ms": [
+        6.3,
+        4.9,
+        4.8,
+        5.1,
+        4.9,
+        6.0,
+        5.7,
+        4.5,
+        3.8,
+        3.9,
+        3.5,
+        4.2,
+        4.2,
+        3.7,
+        6.0
+      ],
+      "package_ms": 2.19,
+      "package_items": 14,
+      "funnel": {
+        "insights": 15,
+        "storylines": 15,
+        "verified": 14,
+        "flagged": 0,
+        "blocked": 1,
+        "approved": 14,
+        "needs_correction": 0,
+        "rejected": 0
+      },
+      "agents": {
+        "Analyst": 60,
+        "Corrections": 2,
+        "Desk": 2,
+        "Editor-in-Chief": 15,
+        "Feed": 1,
+        "Producer": 30,
+        "Verifier": 15,
+        "Writer": 15
+      },
+      "held_by_editor": 1,
+      "revisions": 0
+    },
+    {
+      "fixture": "C",
+      "title": "Coverage stress test",
+      "teams": "Kingsmead United v Port Albion",
+      "final_score": {
+        "HOME": 3,
+        "AWAY": 1
+      },
+      "expected_score": {
+        "HOME": 3,
+        "AWAY": 1
+      },
+      "score_matches": true,
+      "patterns": [
+        {
+          "pattern": "momentum_shift",
+          "label": null,
+          "minute": 57,
+          "detected": true
+        }
+      ],
+      "pattern_precision": {
+        "in_window": 1,
+        "correct_team": 1
+      },
+      "obligations": 5,
+      "covered": 5,
+      "missing": [],
+      "turning_points": 2,
+      "expected_turning_points": 1,
+      "claims_rechecked": 45,
+      "escapes": 0,
+      "red_team": {
+        "drafts": 2,
+        "caught_on_first_draft": 2,
+        "revised_to_verified": 2,
+        "verdicts": 4
+      },
+      "corrections": [],
+      "latency_ms": [
+        12.7,
+        13.7,
+        4.3,
+        3.9,
+        4.4,
+        3.1,
+        3.9,
+        3.0,
+        4.5,
+        7.0,
+        8.0,
+        3.6,
+        5.3
+      ],
+      "package_ms": 1.94,
+      "package_items": 13,
+      "funnel": {
+        "insights": 15,
+        "storylines": 13,
+        "verified": 13,
+        "flagged": 0,
+        "blocked": 0,
+        "approved": 13,
+        "needs_correction": 0,
+        "rejected": 0
+      },
+      "agents": {
+        "Analyst": 52,
+        "Desk": 2,
+        "Editor-in-Chief": 15,
+        "Producer": 26,
+        "Verifier": 15,
+        "Writer": 17
+      },
+      "held_by_editor": 2,
+      "revisions": 2
+    }
+  ],
+  "agent_workflow": {
+    "pattern_recall": {
+      "planted": 32,
+      "found": 29
+    },
+    "pattern_precision": {
+      "detections_in_planted_windows": 7,
+      "right_team": 7
+    },
+    "claim_verdict_accuracy": {
+      "correct": 398,
+      "total": 398
+    },
+    "false_claim_block_rate": {
+      "caught": 37,
+      "planted": 37
+    },
+    "unsupported_claim_escape_rate": {
+      "escapes": 0,
+      "verified_claims": 361
+    },
+    "coverage_rate": {
+      "covered": 12,
+      "obligations": 12
+    },
+    "correction_detection_rate": {
+      "detected": 1,
+      "changed_facts": 1,
+      "replacements_verified": 1
+    },
+    "red_team_writer": {
+      "drafts": 2,
+      "caught_on_first_draft": 2,
+      "revised_to_verified": 2
+    },
+    "median_time_to_verified_storyline_ms": 50.5,
+    "median_time_to_package_ms": 1.94,
+    "turning_points": {
+      "found": 2,
+      "expected": 2
+    },
+    "results_match_fixture": 3
+  },
+  "detection": {
+    "planted": 25,
+    "found": 22,
+    "by_type": {
+      "momentum_shift": {
+        "planted": 9,
+        "found": 6
+      },
+      "counterattack": {
+        "planted": 17,
+        "found": 17
+      },
+      "standout": {
+        "planted": 6,
+        "found": 6
+      }
+    },
+    "extra_detections": 23,
+    "note": "Extra detections are patterns that also occur naturally in the synthetic matches; each meets the detector definition, verified by the claim re-check below."
+  },
+  "false_claims": {
+    "injected": 35,
+    "caught": 35,
+    "blocked": 30,
+    "flagged": 5,
+    "by_kind": {
+      "inflated_possession": {
+        "injected": 5,
+        "caught": 5,
+        "blocked": 5,
+        "flagged": 0
+      },
+      "unsupported_state": {
+        "injected": 5,
+        "caught": 5,
+        "blocked": 5,
+        "flagged": 0
+      },
+      "wrong_number": {
+        "injected": 5,
+        "caught": 5,
+        "blocked": 5,
+        "flagged": 0
+      },
+      "number_mismatch": {
+        "injected": 5,
+        "caught": 5,
+        "blocked": 5,
+        "flagged": 0
+      },
+      "unclaimed": {
+        "injected": 5,
+        "caught": 5,
+        "blocked": 5,
+        "flagged": 0
+      },
+      "judgement_wording": {
+        "injected": 5,
+        "caught": 5,
+        "blocked": 0,
+        "flagged": 5
+      },
+      "wrong_attribution": {
+        "injected": 5,
+        "caught": 5,
+        "blocked": 5,
+        "flagged": 0
+      }
+    },
+    "examples": [
+      {
+        "kind": "inflated_possession",
+        "text": "Northbridge FC dominated possession in the last 8 minutes.",
+        "verdict": "blocked",
+        "reason": "Claim says >= 80; the data says 65.",
+        "caught": true
+      },
+      {
+        "kind": "unsupported_state",
+        "text": "Adeyemi looks exhausted and has lost confidence.",
+        "verdict": "blocked",
+        "reason": "Refers to a state the data can't contain ('exhausted'). Event data records actions, not feelings or fitness.",
+        "caught": true
+      },
+      {
+        "kind": "wrong_number",
+        "text": "The data shows 10 for box entries here.",
+        "verdict": "blocked",
+        "reason": "Claim says == 10; the data says 7.",
+        "caught": true
+      },
+      {
+        "kind": "number_mismatch",
+        "text": "That figure is 9.",
+        "verdict": "blocked",
+        "reason": "The sentence says 9, but none of its claims supports that number.",
+        "caught": true
+      },
+      {
+        "kind": "unclaimed",
+        "text": "Northbridge FC have been the better side all afternoon.",
+        "verdict": "blocked",
+        "reason": "No claim attached: every factual sentence must carry a checkable claim.",
+        "caught": true
+      },
+      {
+        "kind": "judgement_wording",
+        "text": "Riverside Athletic were relentless here.",
+        "verdict": "needs_human",
+        "reason": "Numbers check out, but 'relentless\u2026' is a judgement. A producer should confirm the wording.",
+        "caught": true
+      },
+      {
+        "kind": "wrong_attribution",
+        "text": "Somebody Else scored it.",
+        "verdict": "blocked",
+        "reason": "Claim says == Somebody Else; the data says Torres.",
+        "caught": true
+      }
+    ]
+  },
+  "verified_claims": {
+    "rechecked_independently": 361,
+    "escapes": 0,
+    "escape_rate": 0.0
+  },
+  "latency": {
+    "median_storyline_ms": 50.5,
+    "p95_storyline_ms": 85.2,
+    "median_package_ms": 1.15
+  },
+  "funnel": {
+    "insights": 70,
+    "storylines": 65,
+    "verified": 30,
+    "flagged": 5,
+    "blocked": 30,
+    "approved": 0,
+    "needs_correction": 0,
+    "rejected": 0
+  },
+  "matches": [
+    {
+      "seed": 1,
+      "patterns": [
+        {
+          "pattern": "momentum_shift",
+          "team_id": "HOME",
+          "t_from": 3300,
+          "t_to": 3840,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": false,
+          "insight_id": null,
+          "detected_minute": null
+        },
+        {
+          "pattern": "counterattack",
+          "team_id": "AWAY",
+          "t_from": 1384.8390315463942,
+          "t_to": 1397.3390315463942,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench1-i0005",
+          "detected_minute": 24
+        },
+        {
+          "pattern": "counterattack",
+          "team_id": "HOME",
+          "t_from": 3664.7374129672944,
+          "t_to": 3677.2374129672944,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench1-i0011",
+          "detected_minute": 62
+        },
+        {
+          "pattern": "counterattack",
+          "team_id": "AWAY",
+          "t_from": 4684.2145020804755,
+          "t_to": 4696.7145020804755,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench1-i0015",
+          "detected_minute": 79
+        },
+        {
+          "pattern": "standout",
+          "team_id": "AWAY",
+          "t_from": 1800,
+          "t_to": 2640,
+          "player": "Ndlovu",
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench1-i0007",
+          "detected_minute": 39
+        }
+      ],
+      "extra_detections": 5,
+      "verified_claims_rechecked": 52,
+      "escapes": 0,
+      "false_claims": [
+        {
+          "kind": "inflated_possession",
+          "text": "Northbridge FC dominated possession in the last 8 minutes.",
+          "verdict": "blocked",
+          "reason": "Claim says >= 80; the data says 65.",
+          "caught": true
+        },
+        {
+          "kind": "unsupported_state",
+          "text": "Adeyemi looks exhausted and has lost confidence.",
+          "verdict": "blocked",
+          "reason": "Refers to a state the data can't contain ('exhausted'). Event data records actions, not feelings or fitness.",
+          "caught": true
+        },
+        {
+          "kind": "wrong_number",
+          "text": "The data shows 10 for box entries here.",
+          "verdict": "blocked",
+          "reason": "Claim says == 10; the data says 7.",
+          "caught": true
+        },
+        {
+          "kind": "number_mismatch",
+          "text": "That figure is 9.",
+          "verdict": "blocked",
+          "reason": "The sentence says 9, but none of its claims supports that number.",
+          "caught": true
+        },
+        {
+          "kind": "unclaimed",
+          "text": "Northbridge FC have been the better side all afternoon.",
+          "verdict": "blocked",
+          "reason": "No claim attached: every factual sentence must carry a checkable claim.",
+          "caught": true
+        },
+        {
+          "kind": "judgement_wording",
+          "text": "Riverside Athletic were relentless here.",
+          "verdict": "needs_human",
+          "reason": "Numbers check out, but 'relentless\u2026' is a judgement. A producer should confirm the wording.",
+          "caught": true
+        },
+        {
+          "kind": "wrong_attribution",
+          "text": "Somebody Else scored it.",
+          "verdict": "blocked",
+          "reason": "Claim says == Somebody Else; the data says Torres.",
+          "caught": true
+        }
+      ],
+      "latency_ms": [
+        79.4,
+        81.5,
+        82.5,
+        83.0,
+        83.2,
+        83.7,
+        84.2,
+        84.8,
+        85.2,
+        85.8,
+        86.7,
+        87.3,
+        88.0,
+        88.4,
+        88.8
+      ],
+      "package_ms": 1.09,
+      "funnel": {
+        "insights": 16,
+        "storylines": 15,
+        "verified": 8,
+        "flagged": 1,
+        "blocked": 6,
+        "approved": 0,
+        "needs_correction": 0,
+        "rejected": 0
+      }
+    },
+    {
+      "seed": 2,
+      "patterns": [
+        {
+          "pattern": "momentum_shift",
+          "team_id": "HOME",
+          "t_from": 3300,
+          "t_to": 3840,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench2-i0025",
+          "detected_minute": 62
+        },
+        {
+          "pattern": "counterattack",
+          "team_id": "AWAY",
+          "t_from": 1381.711416727407,
+          "t_to": 1394.211416727407,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench2-i0019",
+          "detected_minute": 24
+        },
+        {
+          "pattern": "counterattack",
+          "team_id": "HOME",
+          "t_from": 3663.116288490529,
+          "t_to": 3675.616288490529,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench2-i0024",
+          "detected_minute": 62
+        },
+        {
+          "pattern": "counterattack",
+          "team_id": "AWAY",
+          "t_from": 4683.09620388081,
+          "t_to": 4695.59620388081,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench2-i0027",
+          "detected_minute": 79
+        },
+        {
+          "pattern": "standout",
+          "team_id": "AWAY",
+          "t_from": 1800,
+          "t_to": 2640,
+          "player": "Ndlovu",
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench2-i0022",
+          "detected_minute": 40
+        }
+      ],
+      "extra_detections": 5,
+      "verified_claims_rechecked": 38,
+      "escapes": 0,
+      "false_claims": [
+        {
+          "kind": "inflated_possession",
+          "text": "Northbridge FC dominated possession in the last 8 minutes.",
+          "verdict": "blocked",
+          "reason": "Claim says >= 78; the data says 63.",
+          "caught": true
+        },
+        {
+          "kind": "unsupported_state",
+          "text": "Carvalho looks exhausted and has lost confidence.",
+          "verdict": "blocked",
+          "reason": "Refers to a state the data can't contain ('exhausted'). Event data records actions, not feelings or fitness.",
+          "caught": true
+        },
+        {
+          "kind": "wrong_number",
+          "text": "The data shows 13 for key actions here.",
+          "verdict": "blocked",
+          "reason": "Claim says == 13; the data says 10.",
+          "caught": true
+        },
+        {
+          "kind": "number_mismatch",
+          "text": "That figure is 102.",
+          "verdict": "blocked",
+          "reason": "The sentence says 102, but none of its claims supports that number.",
+          "caught": true
+        },
+        {
+          "kind": "unclaimed",
+          "text": "Northbridge FC have been the better side all afternoon.",
+          "verdict": "blocked",
+          "reason": "No claim attached: every factual sentence must carry a checkable claim.",
+          "caught": true
+        },
+        {
+          "kind": "judgement_wording",
+          "text": "Northbridge FC were relentless here.",
+          "verdict": "needs_human",
+          "reason": "Numbers check out, but 'relentless\u2026' is a judgement. A producer should confirm the wording.",
+          "caught": true
+        },
+        {
+          "kind": "wrong_attribution",
+          "text": "Somebody Else scored it.",
+          "verdict": "blocked",
+          "reason": "Claim says == Somebody Else; the data says Torres.",
+          "caught": true
+        }
+      ],
+      "latency_ms": [
+        57.6,
+        60.5,
+        62.2,
+        65.2,
+        67.5,
+        69.9,
+        71.6,
+        72.5,
+        73.4,
+        74.2,
+        74.8
+      ],
+      "package_ms": 1.38,
+      "funnel": {
+        "insights": 13,
+        "storylines": 11,
+        "verified": 4,
+        "flagged": 1,
+        "blocked": 6,
+        "approved": 0,
+        "needs_correction": 0,
+        "rejected": 0
+      }
+    },
+    {
+      "seed": 3,
+      "patterns": [
+        {
+          "pattern": "momentum_shift",
+          "team_id": "HOME",
+          "t_from": 3300,
+          "t_to": 3840,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": false,
+          "insight_id": null,
+          "detected_minute": null
+        },
+        {
+          "pattern": "counterattack",
+          "team_id": "AWAY",
+          "t_from": 1381.145338359349,
+          "t_to": 1393.645338359349,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench3-i0033",
+          "detected_minute": 24
+        },
+        {
+          "pattern": "counterattack",
+          "team_id": "HOME",
+          "t_from": 3661.8311902942246,
+          "t_to": 3674.3311902942246,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench3-i0040",
+          "detected_minute": 62
+        },
+        {
+          "pattern": "counterattack",
+          "team_id": "AWAY",
+          "t_from": 4683.361509825324,
+          "t_to": 4695.861509825324,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench3-i0043",
+          "detected_minute": 79
+        },
+        {
+          "pattern": "standout",
+          "team_id": "AWAY",
+          "t_from": 1800,
+          "t_to": 2640,
+          "player": "Ndlovu",
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench3-i0037",
+          "detected_minute": 44
+        }
+      ],
+      "extra_detections": 6,
+      "verified_claims_rechecked": 46,
+      "escapes": 0,
+      "false_claims": [
+        {
+          "kind": "inflated_possession",
+          "text": "Northbridge FC dominated possession in the last 8 minutes.",
+          "verdict": "blocked",
+          "reason": "Claim says >= 70; the data says 55.",
+          "caught": true
+        },
+        {
+          "kind": "unsupported_state",
+          "text": "Adeyemi looks exhausted and has lost confidence.",
+          "verdict": "blocked",
+          "reason": "Refers to a state the data can't contain ('exhausted'). Event data records actions, not feelings or fitness.",
+          "caught": true
+        },
+        {
+          "kind": "wrong_number",
+          "text": "The data shows 13 for seconds here.",
+          "verdict": "blocked",
+          "reason": "Claim says == 13; the data says 10.0.",
+          "caught": true
+        },
+        {
+          "kind": "number_mismatch",
+          "text": "That figure is 99.",
+          "verdict": "blocked",
+          "reason": "The sentence says 99, but none of its claims supports that number.",
+          "caught": true
+        },
+        {
+          "kind": "unclaimed",
+          "text": "Riverside Athletic have been the better side all afternoon.",
+          "verdict": "blocked",
+          "reason": "No claim attached: every factual sentence must carry a checkable claim.",
+          "caught": true
+        },
+        {
+          "kind": "judgement_wording",
+          "text": "Northbridge FC were relentless here.",
+          "verdict": "needs_human",
+          "reason": "Numbers check out, but 'relentless\u2026' is a judgement. A producer should confirm the wording.",
+          "caught": true
+        },
+        {
+          "kind": "wrong_attribution",
+          "text": "Somebody Else scored it.",
+          "verdict": "blocked",
+          "reason": "Claim says == Somebody Else; the data says Holm.",
+          "caught": true
+        }
+      ],
+      "latency_ms": [
+        47.4,
+        48.8,
+        49.9,
+        50.7,
+        51.9,
+        52.9,
+        54.1,
+        55.1,
+        56.1,
+        57.9,
+        59.0,
+        60.0,
+        61.4,
+        62.5
+      ],
+      "package_ms": 1.09,
+      "funnel": {
+        "insights": 16,
+        "storylines": 14,
+        "verified": 7,
+        "flagged": 1,
+        "blocked": 6,
+        "approved": 0,
+        "needs_correction": 0,
+        "rejected": 0
+      }
+    },
+    {
+      "seed": 4,
+      "patterns": [
+        {
+          "pattern": "momentum_shift",
+          "team_id": "HOME",
+          "t_from": 3300,
+          "t_to": 3840,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": false,
+          "insight_id": null,
+          "detected_minute": null
+        },
+        {
+          "pattern": "counterattack",
+          "team_id": "AWAY",
+          "t_from": 1384.4144185607277,
+          "t_to": 1396.9144185607277,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench4-i0047",
+          "detected_minute": 24
+        },
+        {
+          "pattern": "counterattack",
+          "team_id": "HOME",
+          "t_from": 3680.4658953381063,
+          "t_to": 3692.9658953381063,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench4-i0053",
+          "detected_minute": 62
+        },
+        {
+          "pattern": "counterattack",
+          "team_id": "AWAY",
+          "t_from": 4684.31130076133,
+          "t_to": 4696.81130076133,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench4-i0055",
+          "detected_minute": 79
+        },
+        {
+          "pattern": "standout",
+          "team_id": "AWAY",
+          "t_from": 1800,
+          "t_to": 2640,
+          "player": "Ndlovu",
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench4-i0050",
+          "detected_minute": 39
+        }
+      ],
+      "extra_detections": 5,
+      "verified_claims_rechecked": 42,
+      "escapes": 0,
+      "false_claims": [
+        {
+          "kind": "inflated_possession",
+          "text": "Northbridge FC dominated possession in the last 8 minutes.",
+          "verdict": "blocked",
+          "reason": "Claim says >= 62; the data says 47.",
+          "caught": true
+        },
+        {
+          "kind": "unsupported_state",
+          "text": "Price looks exhausted and has lost confidence.",
+          "verdict": "blocked",
+          "reason": "Refers to a state the data can't contain ('exhausted'). Event data records actions, not feelings or fitness.",
+          "caught": true
+        },
+        {
+          "kind": "wrong_number",
+          "text": "The data shows 8 for box entries here.",
+          "verdict": "blocked",
+          "reason": "Claim says == 8; the data says 5.",
+          "caught": true
+        },
+        {
+          "kind": "number_mismatch",
+          "text": "That figure is 84.",
+          "verdict": "blocked",
+          "reason": "The sentence says 84, but none of its claims supports that number.",
+          "caught": true
+        },
+        {
+          "kind": "unclaimed",
+          "text": "Riverside Athletic have been the better side all afternoon.",
+          "verdict": "blocked",
+          "reason": "No claim attached: every factual sentence must carry a checkable claim.",
+          "caught": true
+        },
+        {
+          "kind": "judgement_wording",
+          "text": "Northbridge FC were relentless here.",
+          "verdict": "needs_human",
+          "reason": "Numbers check out, but 'relentless\u2026' is a judgement. A producer should confirm the wording.",
+          "caught": true
+        },
+        {
+          "kind": "wrong_attribution",
+          "text": "Somebody Else scored it.",
+          "verdict": "blocked",
+          "reason": "Claim says == Somebody Else; the data says Santos.",
+          "caught": true
+        }
+      ],
+      "latency_ms": [
+        44.1,
+        45.8,
+        47.1,
+        49.6,
+        51.7,
+        52.5,
+        53.6,
+        54.9,
+        56.0,
+        57.0,
+        58.1,
+        59.4
+      ],
+      "package_ms": 1.15,
+      "funnel": {
+        "insights": 12,
+        "storylines": 12,
+        "verified": 5,
+        "flagged": 1,
+        "blocked": 6,
+        "approved": 0,
+        "needs_correction": 0,
+        "rejected": 0
+      }
+    },
+    {
+      "seed": 5,
+      "patterns": [
+        {
+          "pattern": "momentum_shift",
+          "team_id": "HOME",
+          "t_from": 3300,
+          "t_to": 3840,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench5-i0064",
+          "detected_minute": 59
+        },
+        {
+          "pattern": "counterattack",
+          "team_id": "AWAY",
+          "t_from": 1381.3648693975495,
+          "t_to": 1393.8648693975495,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench5-i0060",
+          "detected_minute": 24
+        },
+        {
+          "pattern": "counterattack",
+          "team_id": "HOME",
+          "t_from": 3665.8435926324487,
+          "t_to": 3678.3435926324487,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench5-i0067",
+          "detected_minute": 62
+        },
+        {
+          "pattern": "counterattack",
+          "team_id": "AWAY",
+          "t_from": 4682.51896933859,
+          "t_to": 4695.01896933859,
+          "player": null,
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench5-i0069",
+          "detected_minute": 79
+        },
+        {
+          "pattern": "standout",
+          "team_id": "AWAY",
+          "t_from": 1800,
+          "t_to": 2640,
+          "player": "Ndlovu",
+          "event_id": null,
+          "label": null,
+          "detected": true,
+          "insight_id": "bench5-i0063",
+          "detected_minute": 39
+        }
+      ],
+      "extra_detections": 2,
+      "verified_claims_rechecked": 43,
+      "escapes": 0,
+      "false_claims": [
+        {
+          "kind": "inflated_possession",
+          "text": "Northbridge FC dominated possession in the last 8 minutes.",
+          "verdict": "blocked",
+          "reason": "Claim says >= 74; the data says 59.",
+          "caught": true
+        },
+        {
+          "kind": "unsupported_state",
+          "text": "Ivanov looks exhausted and has lost confidence.",
+          "verdict": "blocked",
+          "reason": "Refers to a state the data can't contain ('exhausted'). Event data records actions, not feelings or fitness.",
+          "caught": true
+        },
+        {
+          "kind": "wrong_number",
+          "text": "The data shows 7 for shots here.",
+          "verdict": "blocked",
+          "reason": "Claim says == 7; the data says 4.",
+          "caught": true
+        },
+        {
+          "kind": "number_mismatch",
+          "text": "That figure is 80.",
+          "verdict": "blocked",
+          "reason": "The sentence says 80, but none of its claims supports that number.",
+          "caught": true
+        },
+        {
+          "kind": "unclaimed",
+          "text": "Riverside Athletic have been the better side all afternoon.",
+          "verdict": "blocked",
+          "reason": "No claim attached: every factual sentence must carry a checkable claim.",
+          "caught": true
+        },
+        {
+          "kind": "judgement_wording",
+          "text": "Northbridge FC were relentless here.",
+          "verdict": "needs_human",
+          "reason": "Numbers check out, but 'relentless\u2026' is a judgement. A producer should confirm the wording.",
+          "caught": true
+        },
+        {
+          "kind": "wrong_attribution",
+          "text": "Somebody Else scored it.",
+          "verdict": "blocked",
+          "reason": "Claim says == Somebody Else; the data says Moreau.",
+          "caught": true
+        }
+      ],
+      "latency_ms": [
+        45.7,
+        46.5,
+        48.0,
+        49.4,
+        50.5,
+        51.4,
+        52.5,
+        54.4,
+        55.9,
+        56.9,
+        57.7,
+        58.7,
+        59.9
+      ],
+      "package_ms": 1.15,
+      "funnel": {
+        "insights": 13,
+        "storylines": 13,
+        "verified": 6,
+        "flagged": 1,
+        "blocked": 6,
+        "approved": 0,
+        "needs_correction": 0,
+        "rejected": 0
+      }
+    }
+  ],
+  "duration_s": 3.41
+}

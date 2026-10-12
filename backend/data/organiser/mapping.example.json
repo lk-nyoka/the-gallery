@@ -1,0 +1,20 @@
+{
+  "_help": "Copy to mapping.json only if auto-detection gets something wrong. Every key is optional.",
+  "columns": {
+    "type": "EventType",
+    "team": "TeamName",
+    "minute": "Minute",
+    "second": "Second",
+    "period": "Half",
+    "outcome": "Result",
+    "player": "PlayerName"
+  },
+  "types": {
+    "Ball Won": "regain",
+    "Attempt": "shot"
+  },
+  "home_team": "Northbridge FC",
+  "coordinate_max_x": 105,
+  "coordinate_max_y": 68,
+  "official_result": {"HOME": 3, "AWAY": 2}
+}

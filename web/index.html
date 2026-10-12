@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Gallery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div>
+        <div class="brand-name">The Gallery</div>
+        <div class="brand-tag">No evidence, no airtime.</div>
+      </div>
+    </div>
+
+    <div class="scoreboard" id="scoreboard">
+      <span class="team" id="homeName">—</span>
+      <span class="score" id="score">0 – 0</span>
+      <span class="team" id="awayName">—</span>
+      <span class="clock" id="clock">00:00</span>
+      <span class="period" id="period"></span>
+      <span class="result hidden" id="resultCheck"></span>
+      <span class="livebadge hidden" id="liveBadge"></span>
+    </div>
+
+    <div class="controls">
+      <div class="seg" id="marketSeg" role="tablist" aria-label="Market">
+        <button data-market="world" class="on">World · EN</button>
+        <button data-market="br">Brazil · PT</button>
+        <button data-market="za">SA · isiZulu</button>
+      </div>
+      <span class="badge" id="writerBadge" title="Which model writes the words. Verification is the same either way.">model: template</span>
+    </div>
+  </header>
+
+  <nav class="subbar">
+    <div class="tabs" role="tablist">
+      <button class="tab on" data-tab="gallery">Gallery</button>
+      <button class="tab" data-tab="newsroom">Newsroom <span class="tabcount" id="traceCount"></span></button>
+      <button class="tab" data-tab="trust">Trust &amp; performance</button>
+      <button class="tab" data-tab="audit">Audit log</button>
+    </div>
+    <div class="matchbar" id="matchbar">
+      <select id="matchSelect" aria-label="Match"></select>
+      <button class="btn accent" id="findMatch">Find a match</button>
+      <select id="moreSources" aria-label="Other sources">
+        <option value="">More sources…</option>
+        <option value="fixture:A">Fixture A · turning point (red card 63')</option>
+        <option value="fixture:B">Fixture B · data correction</option>
+        <option value="fixture:C">Fixture C · coverage stress + red-team</option>
+        <option value="file">Organiser data file…</option>
+        <option value="archive">Full-detail archive (StatsBomb 2015/16)</option>
+        <option value="synthetic">Random synthetic match</option>
+        <option value="logger">Log a match by hand</option>
+      </select>
+      <span class="divider"></span>
+      <span id="replayControls" class="inline">
+        <button class="btn" id="playBtn">▶ Play</button>
+        <select id="speedSel" aria-label="Replay speed">
+          <option value="5">5×</option><option value="20" selected>20×</option>
+          <option value="60">60×</option><option value="300">300×</option>
+        </select>
+      </span>
+      <span id="liveControls" class="inline hidden">
+        <button class="btn" id="kickoffBtn">Kick-off</button>
+        <button class="btn ghost" id="pauseClockBtn">Pause clock</button>
+        <button class="btn ghost" id="secondHalfBtn">2nd half</button>
+        <button class="btn ghost" id="fullTimeBtn">Full time</button>
+        <input id="setClock" class="clock-input" placeholder="mm:ss" aria-label="Set clock">
+        <button class="btn ghost" id="setClockBtn">Set</button>
+      </span>
+      <span class="divider"></span>
+      <button class="btn warn" id="redTeamBtn" title="Test the gate: the next 2 drafts each carry one labelled false sentence. The Verifier must catch it and the Writer must revise.">Red-team next 2</button>
+      <button class="btn accent" id="htBtn">Build half-time package <span id="htCountdown"></span></button>
+      <button class="btn ghost" id="ftBtn">Full-time</button>
+    </div>
+  </nav>
+
+  <main id="view-gallery" class="view grid">
+    <section class="col left">
+      <div class="panel hidden" id="feedPanel">
+        <div class="panel-h"><span id="feedTitle">Data source &amp; limits</span><span class="muted small" id="feedState"></span></div>
+        <div class="small" id="feedCaps"></div>
+        <div class="kv small" id="teamStats" style="margin-top:8px"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><span>Attacking threat</span><span class="muted small">per minute</span></div>
+        <svg id="momentum" class="momentum" viewBox="0 0 300 120" preserveAspectRatio="none" aria-label="Momentum"></svg>
+        <div class="legend small"><span class="dot home"></span><span id="legHome">Home</span><span class="dot away"></span><span id="legAway">Away</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><span>Newsroom</span><span class="muted small">agents at work · latest first</span></div>
+        <ol id="miniTrace" class="trace mini"></ol>
+      </div>
+      <div class="panel grow">
+        <div class="panel-h"><span>Event feed</span><span class="muted small" id="eventCount">0</span></div>
+        <ol id="feed" class="feed"></ol>
+      </div>
+    </section>
+
+    <section class="col centre">
+      <div class="panel-h big">
+        <span>On-air queue</span>
+        <span class="muted small" id="queueNote">Ranked by code: importance · novelty · confidence · graphic readiness · market relevance</span>
+      </div>
+      <div id="queue" class="queue"></div>
+      <div class="panel-h"><span>All storylines</span><span class="muted small" id="funnel"></span></div>
+      <div id="allStories" class="stories"></div>
+    </section>
+
+    <section class="col right">
+      <div id="loggerPanel" class="panel hidden">
+        <div class="panel-h"><span>Live logger</span><span class="muted small">keys: H/A team · 1–9 action</span></div>
+        <div class="teampick">
+          <button class="teambtn on" data-team="HOME" id="pickHome">Home</button>
+          <button class="teambtn" data-team="AWAY" id="pickAway">Away</button>
+        </div>
+        <input id="playerInput" class="player-input" list="playerList" placeholder="Player (optional, e.g. Santos)">
+        <datalist id="playerList"></datalist>
+        <div class="actions" id="actionGrid"></div>
+        <ol id="logList" class="loglist"></ol>
+      </div>
+
+      <div class="panel grow" id="inspector">
+        <div class="panel-h"><span>Inspector</span><span class="muted small" id="inspTitle">select a storyline</span></div>
+        <div id="inspBody" class="insp-empty">
+          <p>Pick a storyline to see <b>why it ranked where it did</b>, why other stories didn't make it, and to approve, edit or reject it.</p>
+          <p class="muted">Hover any sentence to see the exact query and event rows behind it.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <main id="view-newsroom" class="view hidden">
+    <div class="newsroom">
+      <div class="panel">
+        <div class="panel-h"><span>How a story gets to air</span><span class="muted small">Microsoft Agent Framework workflow</span></div>
+        <div class="flow" id="flow"></div>
+        <div class="legend-trace small">
+          <span><i class="tl action"></i>agent action</span><span><i class="tl ok"></i>verified / approved</span>
+          <span><i class="tl warn"></i>retry / needs a human</span><span><i class="tl bad"></i>blocked / correction</span>
+          <span><i class="tl held"></i>held by the editor</span>
+        </div>
+      </div>
+      <div class="panel grow">
+        <div class="panel-h"><span>Agent trace · this match</span>
+          <span class="inline small"><label><input type="checkbox" id="hideHeld"> hide held</label>
+          <select id="agentFilter" aria-label="Filter by agent"><option value="">All agents</option></select></span></div>
+        <ol id="trace" class="trace"></ol>
+      </div>
+    </div>
+  </main>
+
+  <main id="view-trust" class="view hidden">
+    <div class="trust" id="trust"></div>
+  </main>
+
+  <main id="view-audit" class="view hidden">
+    <div class="panel"><div class="panel-h"><span>Producer decisions</span></div><div id="audit"></div></div>
+  </main>
+
+  <aside id="pkgDrawer" class="drawer hidden" aria-label="Package">
+    <div class="drawer-h">
+      <span id="pkgTitle">Package</span>
+      <span class="muted small" id="pkgMeta"></span>
+      <button class="btn ghost" id="copyPayload">Copy graphics payload</button>
+      <button class="btn ghost" id="closePkg">Close</button>
+    </div>
+    <div id="pkgBody" class="drawer-b"></div>
+  </aside>
+
+  <div id="hovercard" class="hovercard hidden" role="tooltip"></div>
+  <div id="toast" class="toast hidden"></div>
+
+  <dialog id="findDialog" class="wide">
+    <form method="dialog" class="dlg">
+      <h3>Find a match</h3>
+      <p class="muted small">Any finished, live or upcoming match from the ESPN match feed. Finished matches replay event by event and are checked against the official result; live matches are followed automatically.</p>
+      <div class="inline">
+        <label>Date <input type="date" id="fDate"></label>
+        <label>League <select id="fLeague"></select></label>
+        <button type="button" class="btn" id="fSearch">Search</button>
+      </div>
+      <div id="fList" class="flist"><p class="muted small">Pick a date and search.</p></div>
+      <menu><button value="cancel" class="btn ghost">Close</button></menu>
+    </form>
+  </dialog>
+
+  <dialog id="fileDialog" class="wide">
+    <form method="dialog" class="dlg">
+      <h3>Load a data file</h3>
+      <p class="muted small">Files in <code>backend/data/organiser/</code> (CSV, JSON or JSON lines). Columns and event names are detected automatically; set anything unusual in <code>mapping.json</code>.</p>
+      <div id="fileList" class="flist"></div>
+      <menu><button value="cancel" class="btn ghost">Close</button></menu>
+    </form>
+  </dialog>
+
+  <dialog id="realDialog">
+    <form method="dialog" class="dlg">
+      <h3>Replay a real match</h3>
+      <p class="muted small">Validation only: event data from StatsBomb Open Data. The Gallery rebuilds the match event by event and, at full time, checks its score against the official result.</p>
+      <label>Match <select id="realSelect"></select></label>
+      <menu><button value="cancel" class="btn ghost">Cancel</button><button value="ok" class="btn accent">Load match</button></menu>
+    </form>
+  </dialog>
+
+  <dialog id="liveDialog">
+    <form method="dialog" class="dlg">
+      <h3>New live match</h3>
+      <p class="muted small">Log events while you watch. Every storyline is built and checked from what you log.</p>
+      <label>Home team <input id="dHome" value="Northbridge FC" required></label>
+      <label>Away team <input id="dAway" value="Riverside Athletic" required></label>
+      <label>Match date <input id="dDate" value=""></label>
+      <label>Official final score (optional, checked at full time)
+        <span class="inline"><input id="dOffH" value="" style="width:60px"> – <input id="dOffA" value="" style="width:60px"></span></label>
+      <label>Brazil feed: focus players <input id="dBr" placeholder="comma separated, e.g. Santos"></label>
+      <label>SA feed: focus players <input id="dZa" placeholder="comma separated"></label>
+      <menu><button value="cancel" class="btn ghost">Cancel</button><button value="ok" class="btn accent" id="dCreate">Create</button></menu>
+    </form>
+  </dialog>
+
+  <footer class="attrib hidden" id="attrib">Data: StatsBomb Open Data · github.com/statsbomb/open-data</footer>
+  <script src="/static/app.js"></script>
+</body>
+</html>

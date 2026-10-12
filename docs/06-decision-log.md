@@ -50,6 +50,10 @@ Record every decision that changes scope, design or pitch. Newest at the bottom.
 | D38 | 12 Oct | **MODEL_PROVIDER** switch: template (default) · Foundry Local (free, on-device) · Azure OpenAI · OpenAI-compatible; every failure falls back to templates | Free path that still uses Microsoft tech; safety doesn't depend on the model | A single hard-wired provider |
 | D39 | 12 Oct | Corrections create a **new version that supersedes** the old story only on producer re-approval; both stay in the audit | Nothing wrong airs, nothing is silently rewritten | Editing the approved story in place |
 | D40 | 12 Oct | **Foundry Local tested on the target laptop** (qwen2.5-0.5b, CPU, ~15 s per call). Only the Writer and Localiser call it by default; the last revision is deterministic; a grounding check flags true claims stapled to vague wording | The 0.5b model often returns invalid drafts or vague text; the run showed where the verifier needed tightening | Bigger local models (too slow / too much RAM on 7.7 GB) |
+| D41 | 12 Oct | **Viewer personalisation as one more market** (`viewer`): casual fan / analyst, favourite club, player focus; text is a subset of verified sentences, never new text | Challenge stage (e) requires two genuinely different experiences; reusing the market machinery keeps every fact verified | A second model pass that rewrites per viewer |
+| D42 | 12 Oct | **Readiness score, rights envelope, correction impact** (deterministic summaries) | Makes the producer's go/no-go and downstream risk visible; cheap, honest, testable | A full rights-management service |
+| D43 | 12 Oct | **MCP server, read-only** | Lets Copilot and other agents reuse verified intelligence without any write path | Write tools (approve/publish) over MCP |
+| D44 | 12 Oct | **Foundry Local in a child process, headline-only for small models** | In-process inference stalled the server; 0.5b can't follow the claim schema but can write a short headline the verifier can check | Dropping the on-device model; a bigger model the laptop can't run |
 
 ## Open questions
 

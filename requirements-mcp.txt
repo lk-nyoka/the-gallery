@@ -1,0 +1,3 @@
+# MCP server (read-only tools for Copilot / Claude / any MCP client)
+mcp>=1.10
+httpx

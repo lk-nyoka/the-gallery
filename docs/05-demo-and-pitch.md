@@ -23,7 +23,7 @@ Large on-screen captions throughout: judges may watch muted.
 | 0:30–0:50 | **Newsroom** tab: the workflow diagram and the live trace (Editor-in-Chief commissions and holds, Analyst tool calls) | "Built on Microsoft Agent Framework: an Editor-in-Chief commissions, an Analyst gathers evidence with read-only tools, a Writer drafts, and a deterministic Verifier is the only one allowed to say what's true." |
 | 0:50–1:10 | Fixture A at 60×: turning-point story *"The red card that turned the match"*; **Why not?** panel | "It finds the moment that mattered, ranks it with a visible formula, and explains why other stories lost." |
 | 1:10–1:35 | Fixture B at 20×: approve the 29' goal story → feed re-credits the goal → card turns red → **Review the correction** → approve | "Facts change. When the feed re-credits a goal, the approved story is pulled, the Corrections agent drafts a fixed version, and the producer re-approves. Both versions stay in the audit." |
-| 1:35–1:45 | **Full-time** package: coverage check all ✓; switch market to Brazil · PT | "The Desk agent makes sure no goal or red card is missing. Each market gets its own lead story." |
+| 1:35–1:45 | Readiness bar at 100%; **For you…** → Casual fan following one player, then Analyst | "The same verified stories, shaped for a casual fan or an analyst, a favourite club or one player." |
 | 1:45–1:55 | **Trust** tab: 0 escapes of 361, 37/37 stopped, 12/12 covered | "Measured, not claimed. The Gallery: no evidence, no airtime." |
 
 Only show numbers from your own benchmark run on the recording day.

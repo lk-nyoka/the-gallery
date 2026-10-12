@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import benchmark, espn, filefeed, fixtures, live, llm, statsbomb, synth
+from . import benchmark, espn, filefeed, fixtures, governance, live, llm, personalise, statsbomb, synth
 from .engine import MatchRuntime
 from .events import Event
 from .store import Store
@@ -272,6 +272,26 @@ def match_trace(match_id: str, limit: int = 300) -> list[dict]:
     return rt_or_404(match_id).trace.recent(limit)
 
 
+@app.get("/api/storylines/{sid}/provenance")
+def storyline_provenance(sid: str) -> dict:
+    """Everything behind one story: each sentence's claims with the SQL and values, the agent steps, the decisions."""
+    rt = rt_for_storyline(sid)
+    sl = rt.storylines[sid]
+    return {
+        "storyline_id": sid, "match_id": rt.match_id, "headline": sl["headline"], "status": sl["status"],
+        "overall": sl["overall"], "market": sl["market"], "version": sl.get("version", 1),
+        "supersedes": sl.get("supersedes"), "superseded_by": sl.get("superseded_by"),
+        "sentences": [{"text": g["text"], "verdict": g["verdict"], "reason": g["reason"], "struck": g.get("struck", False),
+                       "claims": [{k: c.get(k) for k in ("metric", "params", "op", "value", "actual", "ok", "sql",
+                                                         "sql_params")}
+                                  | {"event_ids": [r["event_id"] for r in (c.get("rows") or [])][:20]}
+                                  for c in g.get("checks", [])]}
+                      for g in sl["segments"]],
+        "agent_trace": rt.trace.for_storyline(sid),
+        "decisions": rt.audit(sid),
+    }
+
+
 @app.get("/api/storylines/{sid}/trace")
 def storyline_trace(sid: str) -> list[dict]:
     return rt_for_storyline(sid).trace.for_storyline(sid)
@@ -450,6 +470,50 @@ def decide(sid: str, req: Decision) -> dict:
 @app.post("/api/storylines/{sid}/inject")
 def inject(sid: str, req: Inject) -> dict:
     return rt_for_storyline(sid).inject_false(sid, req.kind)
+
+
+class ViewerReq(BaseModel):
+    base_market: str = "world"         # language / market the viewer starts from
+    mode: str = "casual"               # casual | analyst
+    club: Optional[str] = None         # HOME | AWAY
+    player: Optional[str] = None       # player-focus mode
+
+
+@app.post("/api/matches/{match_id}/viewer")
+async def set_viewer(match_id: str, req: ViewerReq) -> dict:
+    """Personalise: the same verified stories, ranked and shown for one viewer."""
+    rt = rt_or_404(match_id)
+    if req.base_market not in rt.markets or req.base_market == "viewer":
+        raise HTTPException(400, f"unknown market {req.base_market}")
+    if req.mode not in personalise.MODES:
+        raise HTTPException(400, f"unknown mode {req.mode}")
+    rt.markets["viewer"] = personalise.viewer_market(rt.markets[req.base_market], req.mode, req.club, req.player)
+    rt.trace.emit("Producer", f"viewer profile: {personalise.MODES[req.mode]['label']}", "started",
+                  output_summary=", ".join(x for x in [
+                      rt.names.get(req.club or "", ""), req.player and f"player focus {req.player}",
+                      req.base_market != "world" and rt.markets[req.base_market]["language_name"]] if x)
+                  or "no club or player chosen")
+    if req.base_market != "world":
+        await rt.localise("viewer")
+    rt.publish({"type": "rankings", "rankings": {m: rt.ranking(m) for m in rt.markets}, "funnel": rt.funnel()})
+    return {"market": rt.markets["viewer"], "ranking": rt.ranking("viewer"),
+            "explainers": personalise.EXPLAINERS}
+
+
+@app.get("/api/matches/{match_id}/readiness")
+def readiness(match_id: str, phase: str = "half_time") -> dict:
+    """Go / no-go for the next editorial moment (half_time | full_time)."""
+    return governance.readiness(rt_or_404(match_id), phase)
+
+
+@app.get("/api/matches/{match_id}/players")
+def match_players(match_id: str) -> list[dict]:
+    return personalise.players(rt_or_404(match_id))
+
+
+@app.get("/api/matches/{match_id}/players/{player}")
+def player_card(match_id: str, player: str) -> dict:
+    return personalise.player_card(rt_or_404(match_id), player)
 
 
 @app.post("/api/matches/{match_id}/localise")

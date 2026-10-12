@@ -273,6 +273,9 @@ class _FakeProvider:
     def uses(self, agent):
         return True
 
+    def writer_scope(self):
+        return "full"
+
     def describe(self):
         return {"provider": "fake", "status": "ready"}
 
@@ -348,3 +351,109 @@ def test_reusing_a_match_id_after_restart_does_not_collide_in_the_trace():
     rt2 = MatchRuntime(store, "same", "A FC", "B FC", "fixture", use_model=False)
     rt2.trace.emit("Producer", "second run", "started")
     assert [t["action"] for t in rt2.trace.recent()] == ["second run"]
+
+
+# ---------------------------------------------------------------- personalisation
+def test_viewer_modes_rank_differently_from_the_same_verified_stories(fx_a):
+    from gallery import personalise
+    rt, _ = fx_a
+    base = rt.markets["world"]
+    rt.markets["viewer"] = personalise.viewer_market(base, "casual")
+    casual = [r["detector"] for r in rt.ranking("viewer", "full")]
+    rt.markets["viewer"] = personalise.viewer_market(base, "analyst")
+    analyst = [r["detector"] for r in rt.ranking("viewer", "full")]
+    assert sorted(casual) == sorted(analyst)          # same candidates, nothing invented
+    assert casual != analyst                          # different order
+    assert casual.index("goal") < analyst.index("goal")
+
+
+def test_favourite_player_ranks_their_stories_first(fx_a):
+    from gallery import personalise
+    rt, _ = fx_a
+    star = next(i["players"][0] for i in rt.insights if i["detector"] == "standout")
+    rt.markets["viewer"] = personalise.viewer_market(rt.markets["world"], "casual", player=star)
+    top = rt.ranking("viewer", "full")[0]
+    assert star in rt.insight(top["insight_id"])["players"]
+
+
+def test_player_card_numbers_come_from_the_verifier_sql(fx_a):
+    from gallery import personalise
+    rt, _ = fx_a
+    p = personalise.players(rt)[0]["player"]
+    card = personalise.player_card(rt, p)
+    assert card["found"] and card["stats"]
+    for st in card["stats"]:
+        assert st["sql"].startswith("SELECT")
+    n = sum(1 for e in rt.store.events(rt.match_id) if e["player"] == p and e["type"] == "shot")
+    assert next(st["value"] for st in card["stats"] if st["key"] == "shots") == n
+
+
+# ---------------------------------------------------------------- governance
+def test_readiness_goes_green_only_when_stories_coverage_and_corrections_are_clear():
+    from gallery import governance
+    rt, f = play("C", approve=False, red_team=False)
+    before = governance.readiness(rt, "full_time")
+    assert not before["go"] and before["score"] < 100
+    for s in list(rt.storylines.values()):
+        if s["status"] == "drafted" and s["overall"] == verifier.VERIFIED and s["market"] == "world":
+            rt.decide(s["storyline_id"], "approve")
+    after = governance.readiness(rt, "full_time")
+    assert after["go"] and after["score"] > before["score"]
+
+
+def test_packages_carry_a_rights_envelope(fx_a):
+    rt, _ = fx_a
+    pkg = rt.build_package("full_time", "world")
+    env = pkg["rights"]
+    assert env["package_id"] == pkg["package_id"] and env["expires_at"] > env["built_at"]
+    assert set(env["storylines"]) == {i["storyline_id"] for i in pkg["items"]}
+
+
+def test_correction_reports_its_downstream_impact():
+    rt, f = play("B", approve=True)
+    log = next(x for x in rt.correction_log if x["event_id"] == f["corrections"][0]["event_id"])
+    imp = log["impact"]
+    assert imp["approved_pulled"] == len(log["flagged"]) >= 1 and imp["graphics_invalidated"] >= 1
+
+
+# ---------------------------------------------------------------- MCP server
+def test_mcp_tools_expose_verified_read_only_intelligence(fx_a, monkeypatch):
+    pytest.importorskip("mcp")
+    from fastapi.testclient import TestClient
+
+    from gallery import app as app_mod
+    from gallery import mcp_server
+    rt, _ = fx_a
+    monkeypatch.setitem(app_mod.runtimes, rt.match_id, rt)
+    client = TestClient(app_mod.app)
+
+    def get(path, **params):
+        r = client.get(path, params={k: v for k, v in params.items() if v is not None})
+        r.raise_for_status()
+        return r.json()
+    monkeypatch.setattr(mcp_server, "_get", get)
+    stories = mcp_server.get_verified_storylines(rt.match_id)
+    assert stories and all(s["status"] not in ("superseded", "rejected") for s in stories)
+    prov = mcp_server.get_storyline_provenance(stories[0]["storyline_id"])
+    assert prov["sentences"][0]["claims"][0]["sql"].startswith("SELECT")
+    assert "missing" in mcp_server.get_coverage_gaps(rt.match_id)
+    tools = {t.name for t in __import__("asyncio").run(mcp_server.mcp.list_tools())}
+    assert not any(w in name for name in tools for w in ("approve", "decide", "edit", "publish", "inject"))
+
+
+def test_small_model_writes_headlines_only_and_the_verifier_checks_them():
+    class Small(_FakeProvider):
+        kind = "foundry_local"
+
+        def writer_scope(self):
+            return "headline"
+
+        async def chat(self, messages, **kw):
+            self.calls += 1
+            return '**Headline:** "Riverside scored 47 goals!"' if self.calls % 2 else "Kovac red card changes everything"
+    rt = _story_with(Small())
+    model = [s for s in rt.storylines.values() if "headline" in s["writer"]]
+    assert model
+    for s in rt.storylines.values():
+        if "47 goals" in s["headline"]:
+            assert s["headline_verdict"] == verifier.BLOCKED     # invented number never verified

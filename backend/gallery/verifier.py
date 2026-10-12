@@ -38,7 +38,13 @@ QUALITATIVE = [
     "overwhelm", "dismantl", "destroy", "magnificent", "woeful", "clinical", "sensational",
     # causal stories the event data can't prove
     "led to", "leading to", "capitaliz", "capitalis", "because", "thanks to", "as a result", "deserv",
+    "impressive", "stunning", "amazing", "excellent", "fantastic", "great ", "poor ", "dazzling", "heroic",
 ]
+
+# Words that declare a result. Mid-match they are false even when every number is true, so a human checks them.
+RESULT_WORDS = re.compile(r"\b((?:wins?|won)(?!\s+(?:it|the ball|possession|back|a corner|a free|a penalty|the penalty|"
+                          r"the duel|the header))|victory|victorious|beats?|beaten|defeat(?:s|ed)?|triumph(?:s|ed)?|clinch(?:es|ed)?|"
+                          r"seal(?:s|ed)? the|three points)\b", re.I)
 
 NUMBER_WORDS = {
     "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
@@ -318,6 +324,10 @@ def check_text(text: str, claims: list[dict], english: bool = True) -> tuple[Opt
     for n in numbers_in(text, english_words=english):
         if round(n, 2) not in allowed and not any(abs(n - a) <= 0.01 for a in allowed):
             return f"The sentence says {n:g}, but none of its claims supports that number.", None
+    res = RESULT_WORDS.search(text)
+    if res:
+        return None, (f"Talks about the result ('{res.group(0)}'). Numbers check out, but a producer should confirm "
+                      f"the match is decided.")
     q = _find(QUALITATIVE, text)
     if q:
         return None, f"Numbers check out, but '{q}…' is a judgement. A producer should confirm the wording."

@@ -34,6 +34,7 @@
         <button data-market="world" class="on">World · EN</button>
         <button data-market="br">Brazil · PT</button>
         <button data-market="za">SA · isiZulu</button>
+        <button data-market="viewer" id="viewerBtn" title="Personalise: casual fan or analyst, favourite club, player focus">For you…</button>
       </div>
       <span class="badge" id="writerBadge" title="Which model writes the words. Verification is the same either way.">model: template</span>
     </div>
@@ -105,6 +106,8 @@
     </section>
 
     <section class="col centre">
+      <div id="readiness" class="readiness"></div>
+      <div id="impact" class="impact hidden"></div>
       <div class="panel-h big">
         <span>On-air queue</span>
         <span class="muted small" id="queueNote">Ranked by code: importance · novelty · confidence · graphic readiness · market relevance</span>
@@ -127,6 +130,10 @@
         <ol id="logList" class="loglist"></ol>
       </div>
 
+      <div class="panel hidden" id="playerPanel">
+        <div class="panel-h"><span id="playerTitle">Player focus</span><span class="muted small" id="playerTeam"></span></div>
+        <div id="playerBody"></div>
+      </div>
       <div class="panel grow" id="inspector">
         <div class="panel-h"><span>Inspector</span><span class="muted small" id="inspTitle">select a storyline</span></div>
         <div id="inspBody" class="insp-empty">
@@ -207,6 +214,19 @@
       <p class="muted small">Validation only: event data from StatsBomb Open Data. The Gallery rebuilds the match event by event and, at full time, checks its score against the official result.</p>
       <label>Match <select id="realSelect"></select></label>
       <menu><button value="cancel" class="btn ghost">Cancel</button><button value="ok" class="btn accent">Load match</button></menu>
+    </form>
+  </dialog>
+
+  <dialog id="viewerDialog">
+    <form method="dialog" class="dlg">
+      <h3>Personalise this match</h3>
+      <p class="muted small">Same verified stories, shaped for one viewer. Nothing new is written: the order, depth and focus change.</p>
+      <label>Viewer
+        <span class="seg" id="vMode"><button type="button" data-v="casual" class="on">Casual fan</button><button type="button" data-v="analyst">Analyst</button></span></label>
+      <label>Favourite club <select id="vClub"><option value="">No favourite</option><option value="HOME" id="vClubHome">Home</option><option value="AWAY" id="vClubAway">Away</option></select></label>
+      <label>Player focus <select id="vPlayer"><option value="">Off</option></select></label>
+      <label>Language <select id="vLang"><option value="world">English</option><option value="br">Brazilian Portuguese</option><option value="za">isiZulu</option></select></label>
+      <menu><button value="cancel" class="btn ghost">Cancel</button><button value="ok" class="btn accent">Apply</button></menu>
     </form>
   </dialog>
 

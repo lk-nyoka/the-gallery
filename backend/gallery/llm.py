@@ -4,7 +4,7 @@ MODEL_PROVIDER = template | foundry_local | azure_openai | openai_compatible | a
 
   template           deterministic writer, no model (always available)
   foundry_local      Microsoft Foundry Local, a free on-device model (Windows / macOS)
-                     FOUNDRY_MODEL = model alias (default qwen2.5-1.5b; qwen2.5-0.5b for low-RAM laptops)
+                     FOUNDRY_MODEL = model alias (default qwen2.5-0.5b; qwen2.5-1.5b with 16 GB RAM); runs in its own process
   azure_openai       AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, AZURE_OPENAI_DEPLOYMENT, AZURE_OPENAI_API_VERSION
   openai_compatible  LLM_BASE_URL, LLM_API_KEY, LLM_MODEL
   auto               azure_openai if configured, else openai_compatible, else template
@@ -14,9 +14,12 @@ Models never compute numbers or decide what's true. They choose and phrase; code
 
 from __future__ import annotations
 
+import atexit
 import json
 import os
 import re
+import subprocess
+import sys
 import threading
 import time
 from typing import Any, Optional
@@ -85,40 +88,50 @@ class Provider:
         self.detail = "Deterministic template writer (no model)." + (f" {why}" if why else "")
 
     def _start_foundry(self) -> None:
-        """Start Foundry Local in-process, download the model once, expose its OpenAI-compatible endpoint."""
-        alias = os.getenv("FOUNDRY_MODEL", "qwen2.5-1.5b")
+        """Start Foundry Local in a child process (so inference never stalls the web server), download the model
+        once, then talk to its OpenAI-compatible endpoint."""
+        alias = os.getenv("FOUNDRY_MODEL", "qwen2.5-0.5b")
+        cache = os.getenv("FOUNDRY_CACHE_DIR") or os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "data", "foundry_cache"))
         try:
-            from foundry_local_sdk import Configuration, FoundryLocalManager  # type: ignore
-        except Exception:
-            self.status = "unavailable"
-            self.detail = ("Foundry Local SDK not installed: pip install -r requirements-foundry.txt. "
-                           "Using the template writer meanwhile.")
+            proc = subprocess.Popen([sys.executable, "-m", "gallery.foundry_host", alias, cache],
+                                    cwd=os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),
+                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                    text=True, bufsize=1)
+        except Exception as exc:
+            self.status, self.detail = "unavailable", f"Couldn't start Foundry Local ({exc}). Using the template writer."
             return
-        try:
-            cache = os.getenv("FOUNDRY_CACHE_DIR") or os.path.join(os.path.dirname(__file__), "..", "data",
-                                                                    "foundry_cache")
-            FoundryLocalManager.initialize(Configuration(app_name="the-gallery", model_cache_dir=cache))
-            manager = FoundryLocalManager.instance
-            model = manager.catalog.get_model(alias)
-            if model is None:
-                raise RuntimeError(f"model alias '{alias}' not in the Foundry Local catalog")
+        self._foundry_proc = proc
+        atexit.register(self._stop_foundry)
+        for line in proc.stdout:          # one JSON status line at a time
+            try:
+                msg = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            st = msg.get("status")
+            if st == "downloading":
+                self.status, self.detail = "downloading", f"Downloading {alias} for Foundry Local: {msg.get('pct', 0)}%"
+            elif st == "loading":
+                self.status, self.detail = "loading", f"Loading {alias} into memory…"
+            elif st == "ready":
+                self.base_url, self.model, self.key = msg["url"], msg["model"], "none"
+                self.headers = {"Authorization": "Bearer none"}
+                self.status, self.detail = "ready", f"Microsoft Foundry Local, on-device model '{alias}' (own process)"
+                return
+            elif st == "unavailable":
+                self.status = "unavailable"
+                self.detail = (msg.get("detail") or "Foundry Local unavailable") + " Using the template writer."
+                return
+        self.status, self.detail = "unavailable", "Foundry Local stopped. Using the template writer."
 
-            def progress(p: float) -> None:
-                self.detail = f"Downloading {alias} for Foundry Local: {p:.0f}%"
-            self.status = "downloading"
-            model.download(progress)
-            self.status, self.detail = "loading", f"Loading {alias} into memory…"
-            model.load()
-            manager.start_web_service()
-            self.base_url = f"{manager.urls[0]}/v1"
-            self.model = model.id
-            self.key = "none"
-            self.headers = {"Authorization": "Bearer none"}
-            self._foundry = (manager, model)
-            self.status, self.detail = "ready", f"Microsoft Foundry Local, on-device model '{alias}'"
-        except Exception as exc:  # keep the app running on templates
-            self.status = "unavailable"
-            self.detail = f"Foundry Local couldn't start ({str(exc)[:160]}). Using the template writer."
+    def _stop_foundry(self) -> None:
+        proc = getattr(self, "_foundry_proc", None)
+        if proc and proc.poll() is None:
+            try:
+                proc.stdin.close()
+                proc.terminate()
+            except Exception:
+                pass
 
     # ------------------------------------------------------------------ use
     @property
@@ -130,13 +143,22 @@ class Provider:
         models; writer + localiser for on-device models, which are slow on a laptop CPU)."""
         if not self.available:
             return False
-        default = "writer,localiser" if self.kind == "foundry_local" else "editor,analyst,writer,localiser"
+        default = "writer" if self.kind == "foundry_local" else "editor,analyst,writer,localiser"
         wanted = {a.strip().lower() for a in (os.getenv("MODEL_AGENTS") or default).split(",") if a.strip()}
         return agent in wanted or "all" in wanted
+
+    def writer_scope(self) -> str:
+        """What the Writer asks the model for: 'full' drafts with structured claims, or just the 'headline' over
+        verified template sentences. Small on-device models can't follow the claim schema (tested: qwen2.5-0.5b
+        answers in markdown prose and invents numbers), so they write headlines only."""
+        default = "headline" if self.kind == "foundry_local" else "full"
+        v = (os.getenv("MODEL_WRITER_SCOPE") or default).strip().lower()
+        return v if v in ("headline", "full") else default
 
     def describe(self) -> dict[str, Any]:
         agents = [a for a in ("editor", "analyst", "writer", "localiser") if self.uses(a)]
         return {"provider": self.kind if self.available else "template", "selected": self.kind, "agents": agents,
+                "writer_scope": self.writer_scope() if self.available else None,
                 "status": self.status, "detail": self.detail, "model": self.model if self.available else None,
                 "calls": self.calls, "failures": self.failures, "last_error": self.last_error}
 

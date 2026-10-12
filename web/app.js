@@ -11,9 +11,11 @@
     clock: { running: false, base: 0, startedAt: 0, period: 1 },
     whyNot: {}, pkg: null, pkgDeadline: 0, renderPending: false,
     trace: [], storyTrace: {}, provider: null,
+    viewer: null, explainers: {}, playerCard: null, vMode: "casual",
   };
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const fmtMs = (ms) => (ms == null ? "–" : ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(ms < 10000 ? 1 : 0)} s`);
   const fmt = (t) => { const m = Math.floor(t / 60), s = Math.floor(t % 60); return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`; };
   const DET = { turning_point: "Turning point", red_card: "Red card", goal: "Goal", momentum_shift: "Momentum shift", counterattack: "Counterattack", goal_threat: "Pressure, no goal", standout: "Standout performer" };
   const ICON = { verified: "✓", needs_human: "!", blocked: "✕" };
@@ -30,7 +32,8 @@
   }
   function schedule() {
     if (S.renderPending) return; S.renderPending = true;
-    requestAnimationFrame(() => { S.renderPending = false; renderAll(); });
+    const run = () => { S.renderPending = false; renderAll(); };
+    if (document.hidden) setTimeout(run, 120); else requestAnimationFrame(run);   // rAF pauses in hidden tabs
   }
 
   // ------------------------------------------------------------------ matches + socket
@@ -49,7 +52,9 @@
 
   function connect(id) {
     if (S.ws) { S.ws.onclose = null; S.ws.close(); }
-    Object.assign(S, { matchId: id, events: [], insights: {}, storylines: {}, rankings: {}, selected: null, whyNot: {} });
+    Object.assign(S, { matchId: id, events: [], insights: {}, storylines: {}, rankings: {}, selected: null, whyNot: {}, viewer: null, playerCard: null });
+    if (S.market === "viewer") { S.market = "world"; document.querySelectorAll("#marketSeg button").forEach((x) => x.classList.toggle("on", x.dataset.market === "world")); }
+    if ($("viewerBtn")) $("viewerBtn").textContent = "For you…";
     const proto = location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(`${proto}://${location.host}/ws/${id}`);
     S.ws = ws;
@@ -76,6 +81,7 @@
         break;
       }
       case "event":
+        if (S.viewer?.player) refreshPlayer();
         S.events.push(msg.event); S.snap.now_t = msg.now_t; S.snap.now_clock = msg.now_clock; S.snap.score = msg.score;
         if (msg.event.player) S.players[msg.event.team_id]?.add(msg.event.player);
         break;
@@ -97,7 +103,7 @@
         if (ev && c.after) Object.assign(ev, c.after);
         if (!c.after) S.events = S.events.filter((e) => e.event_id !== c.event_id);
         S.snap.score = msg.score; (S.snap.corrections ||= []).push(c);
-        toast(`${c.reason.startsWith("SIMULATED") ? "Test correction" : "Data correction"}: ${c.flagged.length} approved stor${c.flagged.length === 1 ? "y needs" : "ies need"} fixing`, c.flagged.length > 0);
+        toast(`${c.reason.startsWith("SIMULATED") ? "Test correction" : "Data correction"}: ${c.flagged.length} approved stor${c.flagged.length === 1 ? "y" : "ies"} pulled${c.impact ? `, ${c.impact.graphics_invalidated} graphic(s) invalidated` : ""}`, c.flagged.length > 0);
         break;
       }
       case "live":
@@ -244,10 +250,12 @@
 
   function renderQueue() {
     const ranking = S.rankings[S.market] || [];
-    const top = ranking.slice(0, 3).map((r) => ({ r, s: storyFor(r.insight_id) })).filter((x) => x.s);
+    const top = ranking.map((r) => ({ r, s: storyFor(r.insight_id) })).filter((x) => x.s && x.s.status !== "rejected").slice(0, 3)
+      .map((x, i) => ({ ...x, r: { ...x.r, pos: i + 1 } }));
     $("queue").innerHTML = top.length ? top.map(({ r, s }) => card(s, r, false)).join("")
       : `<div class="empty">${S.events.length ? "Watching… no story in the last 15 minutes yet." : (S.snap.mode === "live" ? "Press Kick-off, then log events as you watch." : S.snap.mode === "real" ? `Real match: ${esc(S.snap.meta.date || "")} · ${esc(S.snap.meta.stadium || "")}. Press Play to replay it event by event.` : "Press Play to start the replay.")}</div>`;
     const f = S.funnel || {};
+    $("queueNote").textContent = S.market === "viewer" && S.viewer ? `Audience preview · ${S.viewer.mode === "analyst" ? "Analyst" : "Casual fan"}${S.viewer.club ? " · supports " + S.snap.names[S.viewer.club] : ""}${S.viewer.player ? " · following " + S.viewer.player : ""} · same verified stories, re-ordered and trimmed` : "Ranked by code: importance · novelty · confidence · graphic readiness · market relevance";
     $("funnel").textContent = `${f.insights || 0} insights → ${f.storylines || 0} storylines → ${f.verified || 0} verified · ${f.flagged || 0} flagged · ${f.blocked || 0} blocked → ${f.approved || 0} approved`;
     const rankById = Object.fromEntries((S.rankings[S.market] || []).map((r) => [r.insight_id, r]));
     const list = Object.values(S.storylines).filter((s) => s.market === "world").sort((a, b) => b.minute - a.minute || b.created_at - a.created_at);
@@ -256,18 +264,30 @@
 
   function card(s, r, compact) {
     const team = S.snap.names[s.team_id];
-    const segs = s.segments.map((g, i) => segRow(s, g, i, compact)).join("");
+    const v = S.market === "viewer" ? S.viewer : null;
+    let shown = s.segments.map((g, i) => [g, i]);
+    if (v && !compact) {
+      shown = shown.filter(([g]) => g.verdict === "verified" && !g.struck);
+      if (v.max_sentences) shown = shown.slice(0, v.max_sentences);
+    }
+    let segs = shown.map(([g, i]) => segRow(s, g, i, compact)).join("");
+    if (v && !compact && v.mode === "casual" && S.explainers[s.detector]) segs += `<li class="explainer">${esc(S.explainers[s.detector])}</li>`;
+    if (v && !compact && v.mode === "analyst") {
+      const nums = shown.flatMap(([g]) => (g.checks || []).filter((c) => typeof c.actual === "number").map((c) => `<span class="num" title="${esc(sqlWithParams(c.sql || "", c.sql_params || []))}">${esc(numLabel(c))} <b>${esc(c.actual)}</b></span>`));
+      if (nums.length) segs += `<li class="nums">${nums.join("")}</li>`;
+    }
     const local = s.market !== "world" ? ` · ${esc(s.writer.startsWith("not localised") ? "EN (not localised)" : s.language)}` : "";
     const corr = s.status === "needs_correction" && s.correction ? `<div class="corr">⚠ Correction needed: ${esc(s.correction.detail)} <span class="muted">(${esc(s.correction.reason)})</span>${replacementOf(s) ? ` · <b>corrected version drafted</b>` : ""}</div>` : "";
     const ver = (s.version > 1 ? `<span class="pill warn" title="The Verifier rejected an earlier draft; the Writer revised it">v${s.version} · revised</span>` : "")
       + (s.supersedes ? `<span class="pill bad" title="Correction of ${esc(s.supersedes)}">correction</span>` : "")
       + (s.red_team ? `<span class="pill" title="Red-team test: the first draft carried a labelled false sentence">red-team</span>` : "");
-    return `<article class="card ${compact ? "compact" : ""} ${S.selected === s.storyline_id ? "sel" : ""} ${s.status === "needs_correction" ? "needs_correction" : ""}" data-sid="${s.storyline_id}" id="card-${s.storyline_id}">
-      <div class="card-top">${r && !compact ? `<span class="rank">#${r.rank}</span>` : ""}<span>${DET[s.detector] || s.detector}</span><span>${s.minute}'</span>
+    const mine = v && ((v.club && s.team_id === v.club) || (v.player && r?.player_focus));
+    return `<article class="card ${mine ? "mine" : ""} ${compact ? "compact" : ""} ${S.selected === s.storyline_id ? "sel" : ""} ${s.status === "needs_correction" ? "needs_correction" : ""}" data-sid="${s.storyline_id}" id="card-${s.storyline_id}">
+      <div class="card-top">${r && !compact ? `<span class="rank" title="Ranked ${r.rank} of the stories in the last 15 minutes">#${r.pos ?? r.rank}</span>` : ""}<span>${DET[s.detector] || s.detector}</span><span>${s.minute}'</span>
         <span class="tag ${teamClass(s.team_id)}">${esc(team)}</span>${r ? `<span>score ${r.score.toFixed(2)}</span>` : ""}${local}
         ${ver}<span class="status ${s.status}">${s.status.replace("_", " ")}</span></div>
       <div class="headline">${esc(s.headline)} <span class="vchip ${s.overall}">${VLABEL[s.overall]}</span></div>${corr}
-      ${compact ? "" : `<ul class="segs">${segs}</ul><div class="card-foot"><span>${esc(s.writer)}</span><span>${s.latency_ms} ms event→verified</span><span>${esc(s.graphic.template)}</span><span>clip ${esc(s.clip_cue.from)}–${esc(s.clip_cue.to)}</span></div>`}
+      ${compact ? "" : `<ul class="segs">${segs}</ul>${v ? "" : `<div class="card-foot"><span>${esc(s.writer)}</span><span>${fmtMs(s.latency_ms)} event→verified</span><span>${esc(s.graphic.template)}</span><span>clip ${esc(s.clip_cue.from)}–${esc(s.clip_cue.to)}</span></div>`}`}
     </article>`;
   }
 
@@ -279,6 +299,11 @@
     </li>`;
   }
 
+  function numLabel(c) {
+    const team = S.snap.names[c.params?.team_id];
+    const k = (c.key || c.metric).replace(/^(up|down|opp|team|home|away)_/, "").replace(/_/g, " ");
+    return team && !/^(score|seconds|passes)/.test(k) ? `${team.split(" ")[0]} ${k}` : k;
+  }
   function replacementOf(s) { return Object.values(S.storylines).find((x) => x.supersedes === s.storyline_id); }
 
   function flashCard(sid) {
@@ -342,7 +367,7 @@
       <h4>Why not the others?</h4><div class="whynot">${whyNot}</div>
       <h4>Air details</h4>
       <div class="kv"><span>Status</span><span>${s.status}</span><span>Writer</span><span>${esc(s.writer)}</span>
-        <span>Event → verified</span><span>${s.latency_ms} ms</span><span>Graphic</span><span>${esc(s.graphic.template)}</span>
+        <span>Event → verified</span><span>${fmtMs(s.latency_ms)}</span><span>Graphic</span><span>${esc(s.graphic.template)}</span>
         <span>Clip cue</span><span>${esc(s.clip_cue.from)}–${esc(s.clip_cue.to)} · ${esc(s.clip_cue.label)}</span>
         <span>Evidence</span><span>${s.graphic.event_ids.length} events</span></div>`;
     $("approveBtn").onclick = () => approve(s);
@@ -422,7 +447,7 @@
       ${(p.needs_correction || []).length ? `<div class="corr">⚠ ${p.needs_correction.length} approved stor${p.needs_correction.length === 1 ? "y is" : "ies are"} now contradicted by the data and left out: ${esc(p.needs_correction.join("; "))}</div>` : ""}`;
     $("pkgBody").innerHTML = `<div>${covHtml}${p.note ? `<div class="empty">${esc(p.note)}</div>` : items}</div>
       <div><h4 style="margin-top:0">Recap</h4><div>${esc(p.recap)}</div><h4>Social copy</h4><div>${esc(p.social)}</div>
-      <h4>Graphics payload (JSON)</h4><div class="code">${esc(JSON.stringify(p.items.map((i) => i.graphic_payload), null, 2))}</div></div>`;
+      <h4>Rights envelope</h4><div class="code">${esc(JSON.stringify(p.rights || {}, null, 2))}</div><h4>Graphics payload (JSON)</h4><div class="code">${esc(JSON.stringify(p.items.map((i) => i.graphic_payload), null, 2))}</div></div>`;
   }
   $("copyPayload").onclick = async () => {
     if (!S.pkg) return;
@@ -553,7 +578,7 @@
     const p = S.provider || S.snap?.provider; if (!p) return;
     const b = $("writerBadge");
     const name = p.provider === "foundry_local" ? "Foundry Local" : p.provider === "azure_openai" ? "Azure OpenAI" : p.provider === "openai_compatible" ? "OpenAI-compatible" : "template";
-    b.textContent = p.status === "ready" ? `model: ${name}${p.model ? " · " + p.model.split(":")[0] : ""}` : `model: template · ${p.selected.replace("_", " ")} ${p.status}`;
+    b.textContent = p.status === "ready" ? `model: ${name}${p.model ? " · " + p.model.split(":")[0].replace(/-instruct.*$/, "") : ""}` : `model: template · ${p.selected.replace("_", " ")} ${p.status}`;
     b.title = p.detail + (p.failures ? ` · ${p.failures} model failures fell back to templates` : "");
     b.className = "badge " + (p.status === "ready" && p.provider !== "template" ? "on" : ["starting", "downloading", "loading"].includes(p.status) ? "busy" : "");
   }
@@ -564,11 +589,91 @@
   }
   $("redTeamBtn").onclick = async () => { try { await api(`/api/matches/${S.matchId}/red-team`, { method: "POST", body: { count: 2 } }); } catch (e) { toast(e.message, true); } };
 
+  // ------------------------------------------------------------------ readiness + correction impact
+  let readyBusy = false;
+  async function pollReadiness() {
+    if (S.matchId && !readyBusy) {
+      readyBusy = true;
+      const phase = nowT() < 46 * 60 ? "half_time" : "full_time";
+      try { S.readiness = await api(`/api/matches/${S.matchId}/readiness?phase=${phase}`); renderReadiness(); } catch (_) {}
+      readyBusy = false;
+    }
+    setTimeout(pollReadiness, 3000);
+  }
+  function renderReadiness() {
+    const r = S.readiness; if (!r) return;
+    const label = r.phase === "half_time" ? "Half-time" : "Full-time";
+    if (!S.events.length) { $("readiness").innerHTML = `<div class="rd-score"><b>–</b><span>${label} ready</span></div><div class="rd-checks"><span class="rd">waiting for kick-off</span></div>`; $("impact").classList.add("hidden"); return; }
+    $("readiness").innerHTML = `<div class="rd-score ${r.go ? "ok" : r.score >= 60 ? "warn" : "bad"}"><b>${r.score}%</b><span>${label} ready</span></div>
+      <div class="rd-checks">${r.checks.map((c) => `<span class="rd ${c.ok ? "ok" : "no"}">${c.ok ? "✓" : "•"} ${esc(c.label)}</span>`).join("")}
+      ${r.waiting_for_approval ? `<span class="rd wait">${r.waiting_for_approval} verified stor${r.waiting_for_approval === 1 ? "y" : "ies"} waiting for you</span>` : ""}</div>`;
+    const open = (S.snap?.corrections || []).filter((c) => c.flagged.some((sid) => S.storylines[sid]?.status === "needs_correction"));
+    const c = open[open.length - 1];
+    $("impact").classList.toggle("hidden", !c);
+    if (c && c.impact) {
+      const i = c.impact;
+      $("impact").innerHTML = `<b>Correction impact</b> · ${esc(c.reason)}<div class="chain">
+        <span>${i.approved_pulled} approved stor${i.approved_pulled === 1 ? "y" : "ies"} pulled</span><span>${i.graphics_invalidated} graphic${i.graphics_invalidated === 1 ? "" : "s"} invalidated</span>
+        <span>${i.drafts_invalidated} draft${i.drafts_invalidated === 1 ? "" : "s"} invalidated</span><span>${i.localised_versions} localised version${i.localised_versions === 1 ? "" : "s"}</span>
+        <span>${i.packages_to_rebuild.length} package${i.packages_to_rebuild.length === 1 ? "" : "s"} to rebuild</span><span class="ok">replacement drafted by the Corrections agent</span></div>`;
+    }
+  }
+
+  // ------------------------------------------------------------------ viewer personalisation
+  async function openViewer() {
+    $("vClubHome").textContent = S.snap.names.HOME; $("vClubAway").textContent = S.snap.names.AWAY;
+    try {
+      const ps = await api(`/api/matches/${S.matchId}/players`);
+      const cur = $("vPlayer").value;
+      $("vPlayer").innerHTML = `<option value="">Off</option>` + ps.map((p) => `<option value="${esc(p.player)}">${esc(p.player)} · ${esc(p.team)}</option>`).join("");
+      $("vPlayer").value = cur;
+    } catch (_) {}
+    $("viewerDialog").showModal();
+  }
+  document.querySelectorAll("#vMode button").forEach((b) => (b.onclick = () => {
+    S.vMode = b.dataset.v; document.querySelectorAll("#vMode button").forEach((x) => x.classList.toggle("on", x === b));
+  }));
+  $("viewerDialog").addEventListener("close", async () => {
+    if ($("viewerDialog").returnValue !== "ok") return;
+    const body = { mode: S.vMode, club: $("vClub").value || null, player: $("vPlayer").value || null, base_market: $("vLang").value };
+    try {
+      const r = await api(`/api/matches/${S.matchId}/viewer`, { method: "POST", body });
+      S.viewer = r.market.viewer; S.explainers = r.explainers; S.market = "viewer";
+      S.rankings.viewer = r.ranking;
+      document.querySelectorAll("#marketSeg button").forEach((x) => x.classList.toggle("on", x.dataset.market === "viewer"));
+      $("viewerBtn").textContent = viewerLabel();
+      refreshPlayer(true); schedule();
+    } catch (e) { toast(e.message, true); }
+  });
+  function viewerLabel() {
+    const v = S.viewer; if (!v) return "For you…";
+    return `For you · ${v.mode === "analyst" ? "Analyst" : "Fan"}`;
+  }
+  async function refreshPlayer(now = false) {
+    const p = S.viewer?.player; if (!p) { S.playerCard = null; return renderPlayer(); }
+    if (!now && Date.now() - (refreshPlayer._t || 0) < 2500) return;
+    refreshPlayer._t = Date.now();
+    try { S.playerCard = await api(`/api/matches/${S.matchId}/players/${encodeURIComponent(p)}`); } catch (_) { S.playerCard = null; }
+    renderPlayer();
+  }
+  const TL = { shot: "Shot", own_goal: "Own goal", card: "Card", key_pass: "Chance created", box_entry: "Box entry", regain: "Regain" };
+  function renderPlayer() {
+    const c = S.playerCard, panel = $("playerPanel");
+    panel.classList.toggle("hidden", !(S.market === "viewer" && S.viewer?.player));
+    if (!c || !c.found) { $("playerBody").innerHTML = `<p class="muted small">No actions yet.</p>`; return; }
+    $("playerTitle").textContent = `Player focus · ${c.player}`; $("playerTeam").textContent = c.team;
+    const analyst = S.viewer?.mode === "analyst";
+    const stats = analyst ? c.stats : c.stats.filter((x) => ["shots", "goals", "chances", "regains"].includes(x.key));
+    $("playerBody").innerHTML = `<div class="pstats">${stats.map((x) => `<div class="pstat" title="${esc(sqlWithParams(x.sql, x.sql_params))}"><b>${esc(x.value)}</b><span>${esc(x.label)}</span></div>`).join("")}</div>
+      <div class="ptl">${c.timeline.slice(-12).reverse().map((e) => `<span class="pev ${e.outcome === "goal" || e.type === "own_goal" ? "goal" : ""}">${e.minute}' ${esc(e.type === "shot" ? (e.outcome === "goal" ? "GOAL" : "Shot " + (e.outcome || "").replace("_", " ")) : e.type === "card" ? (e.outcome === "red" ? "Red card" : "Yellow") : TL[e.type] || e.type)}</span>`).join("")}</div>
+      <div class="small muted" style="margin-top:6px">${c.stories.length} stor${c.stories.length === 1 ? "y features" : "ies feature"} ${esc(c.player)}. ${analyst ? "Hover a number for its query." : ""}</div>`;
+  }
+
   // ------------------------------------------------------------------ audit
   async function renderAudit() {
     const rows = await api(`/api/matches/${S.matchId}/audit`);
     const corr = (S.snap.corrections || []).slice().reverse();
-    const corrHtml = corr.length ? `<h4 class="small muted">Data corrections</h4>` + corr.map((c) => `<div class="audit-row"><span class="muted">${new Date(c.at * 1000).toLocaleTimeString()}</span><span style="color:var(--bad)">correction</span><span>${esc(c.reason)} · ${c.flagged.length} approved stor${c.flagged.length === 1 ? "y" : "ies"} flagged</span></div>`).join("") + `<h4 class="small muted">Producer decisions</h4>` : "";
+    const corrHtml = corr.length ? `<h4 class="small muted">Data corrections</h4>` + corr.map((c) => `<div class="audit-row"><span class="muted">${new Date(c.at * 1000).toLocaleTimeString()}</span><span style="color:var(--bad)">correction</span><span>${esc(c.reason)} · ${c.flagged.length} approved stor${c.flagged.length === 1 ? "y" : "ies"} pulled${c.impact ? ` · ${c.impact.graphics_invalidated} graphic(s), ${c.impact.drafts_invalidated} draft(s), ${c.impact.packages_to_rebuild.length} package(s) affected` : ""}</span></div>`).join("") + `<h4 class="small muted">Producer decisions</h4>` : "";
     $("audit").innerHTML = corrHtml + (rows.length ? rows.map((r) => {
       const a = JSON.parse(r.after || "{}");
       return `<div class="audit-row"><span class="muted">${new Date(r.at * 1000).toLocaleTimeString()}</span><span>${esc(r.action)}</span><span>${esc(a.headline || "")} <span class="muted">· ${esc(r.storyline_id)}</span></span></div>`;
@@ -718,8 +823,9 @@
     try { const s = await api("/api/matches", { method: "POST", body }); loadMatches(s.match_id); } catch (e) { toast(e.message, true); }
   });
   document.querySelectorAll("#marketSeg button").forEach((b) => (b.onclick = async () => {
+    if (b.dataset.market === "viewer") return openViewer();
     document.querySelectorAll("#marketSeg button").forEach((x) => x.classList.toggle("on", x === b));
-    S.market = b.dataset.market;
+    S.market = b.dataset.market; S.viewer = null; renderPlayer();
     if (S.market !== "world" && S.matchId) { try { await api(`/api/matches/${S.matchId}/localise`, { method: "POST", body: { market: S.market } }); } catch (e) { toast(e.message, true); } }
     if (S.selected) select(S.selected); else schedule();
   }));
@@ -741,4 +847,5 @@
   }).catch(() => {});
   loadMatches();
   pollProvider();
+  pollReadiness();
 })();

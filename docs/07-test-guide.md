@@ -7,7 +7,7 @@ Everything here runs on synthetic data: fictional clubs and players with known a
 ```bash
 pip install -r requirements.txt -r requirements-dev.txt
 ruff check backend
-pytest -q                                   # 45 tests
+pytest -q                                   # 53 tests
 cd backend && python -m gallery.benchmark   # full benchmark, writes benchmark_results.json
 python -m gallery.benchmark --quick         # the CI smoke test
 ```
@@ -26,6 +26,11 @@ Run `run.bat` (Windows) or `python -m uvicorn gallery.app:app --port 8000` from 
 | **Coverage** | Any fixture; press **Full-time** before approving anything | The package lists every goal, own goal and red card that has no approved story; the Desk trace says which drafts are waiting |
 | **Markets** | Switch to *Brazil · PT* or *SA · isiZulu* | The Localiser picks that market's top stories; with no model they stay in English and say so |
 | **Manual red-team** | Inspector → **Red-team: inject false claim** | A labelled false sentence is blocked with the reason |
+| **Viewer modes** | **For you…** → Casual fan or Analyst, pick a club, follow a player | Casual: headline, 1–2 verified sentences and an explainer. Analyst: every verified sentence plus its numbers (hover for SQL). Player focus: that player's stories first and a live player card |
+| **Readiness** | Watch the bar above the queue; approve stories | The half-time / full-time score rises as stories are approved and gaps close; a correction drops it |
+| **Correction impact** | Fixture B, approve the 29' goal story | A red panel lists what the correction pulled: stories, graphics, drafts, localised versions, packages |
+| **Rights envelope** | Build a package | The package drawer shows markets, surfaces, expiry and approval state |
+| **MCP** | `python -m gallery.mcp_server` with an MCP client | Read-only tools return verified stories, provenance, gaps and readiness; no tool can approve |
 | **Newsroom** | Newsroom tab | Workflow diagram, live trace, filter by agent, hide held |
 | **Audit** | Audit log tab | Every decision, the correction, and the superseded row |
 

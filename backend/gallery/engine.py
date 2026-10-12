@@ -9,7 +9,7 @@ import random
 import time
 from typing import Any, Optional
 
-from . import editorial, llm, verifier
+from . import editorial, governance, llm, verifier
 from .agents.analyst import Analyst
 from .agents.corrections import Corrections
 from .agents.desk import Desk
@@ -169,6 +169,13 @@ class MatchRuntime:
             r = editorial.rank(self.insights, self.now_t, ctx, mk, window_s=None)
         else:
             r = editorial.rank(self.insights, self.now_t, ctx, mk, window_s=15 * 60)
+        focus = (mk.get("viewer") or {}).get("player")
+        if focus:   # player-focus mode: that player's stories lead, in score order; everything else follows
+            by_id = {i["insight_id"]: i for i in self.insights}
+            r.sort(key=lambda x: focus not in (by_id.get(x["insight_id"], {}).get("players") or []))
+            for n, x in enumerate(r, 1):
+                x["rank"] = n
+                x["player_focus"] = focus in (by_id.get(x["insight_id"], {}).get("players") or [])
         for s in r:
             sid = self.by_insight.get((s["insight_id"], market)) or self.by_insight.get((s["insight_id"], "world"))
             s["storyline_id"] = sid
@@ -349,8 +356,8 @@ class MatchRuntime:
     # ------------------------------------------------------------------ localisation
     async def localise(self, market: str, top_n: int = 3, phase: str = "live") -> list[dict]:
         """Localiser agent: the market's top stories, adapted and re-verified."""
-        if market == "world":
-            return []
+        if market == "world" or self.markets[market].get("language", "en") == "en":
+            return []          # English markets reuse the world stories; only the ranking changes
         await self.newsroom.localise(market, phase, top_n)
         return [self.storylines[self.by_insight[(r["insight_id"], market)]]
                 for r in self.ranking(market, phase) if (r["insight_id"], market) in self.by_insight][:top_n]
@@ -413,6 +420,7 @@ class MatchRuntime:
         rec = {"event_id": event_id, "minute": rows[0]["minute"], "before": before, "after": allowed,
                "reason": reason, "at": time.time(), "flagged": [s["storyline_id"] for s in flagged],
                "stale_drafts": stale}
+        rec["impact"] = governance.correction_impact(self, rec["flagged"], stale)
         self.correction_log.append(rec)
         self.trace.emit("Feed", f"data correction at {rows[0]['minute']}'", "rejected", tool="living_verification",
                         input_summary=reason, output_summary=f"{len(flagged)} approved and {len(stale)} drafted "
@@ -429,6 +437,7 @@ class MatchRuntime:
         rec = {"event_id": event_id, "minute": rows[0]["minute"] if rows else None, "before": rows[0] if rows else None,
                "after": None, "reason": reason, "at": time.time(), "flagged": [s["storyline_id"] for s in flagged],
                "stale_drafts": [s["storyline_id"] for s in self.stale_drafts]}
+        rec["impact"] = governance.correction_impact(self, rec["flagged"], rec["stale_drafts"])
         self.correction_log.append(rec)
         self.publish({"type": "correction", "correction": rec, "score": self.score()})
         self.newsroom.on_correction(rec["flagged"] + rec["stale_drafts"], reason)
@@ -523,6 +532,7 @@ class MatchRuntime:
         body["built_ms"] = built_ms
         pid = f"{self.match_id}-p{next(_pid):03d}"
         body["package_id"] = pid
+        body["rights"] = governance.rights_envelope(self, body)
         self.store.execute("INSERT INTO packages VALUES (?,?,?,?,?,?,?)",
                            (pid, self.match_id, kind, market, json.dumps(body, default=str), built_ms, time.time()))
         self.packages.append(body)

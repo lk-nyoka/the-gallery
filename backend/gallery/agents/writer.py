@@ -9,11 +9,13 @@ from __future__ import annotations
 
 import itertools
 import json
+import re
 import random
 from typing import TYPE_CHECKING, Optional
 
 from pydantic import ValidationError
 
+from .. import editorial
 from .. import writer as W
 from .contracts import EvidenceBrief, Segment, StoryCommission, StoryDraft, VerificationResult
 from .trace import Timer
@@ -35,6 +37,23 @@ Return only JSON: {{"headline": "...", "segments": [{{"text": "...", "claims": [
 
 
 MAX_MODEL_VERSION = 2   # v1 and the first revision may come from the model; the last revision is deterministic
+
+
+HEADLINE_PROMPT = ("You write one short on-screen headline for live football TV. Use only the facts given. "
+                   "Do not add numbers, scores or names that are not in the facts. No feelings, fitness or intent. "
+                   "At most 9 words. Reply with the headline only.")
+
+
+def clean_headline(raw: str) -> str:
+    """Small models wrap headlines in markdown, labels and quotes; keep the first real line."""
+    for line in (raw or "").splitlines():
+        t = re.sub(r"^[#*\-\s]*(headline|title)?\s*[:\-]?\s*", "", line.strip(), flags=re.I)
+        t = t.strip(' *"“”\'\t').rstrip(".").strip(' *"“”\'')
+        if t:
+            if len(t.split()) > 14:
+                raise ValueError("headline too long")
+            return t
+    raise ValueError("empty headline")
 
 
 class WriterAgent:
@@ -97,6 +116,18 @@ class WriterAgent:
                                                      f"from the facts. Return valid JSON."}]
         raise ValueError(f"model draft invalid twice: {last_err}")
 
+    async def _model_headline(self, c: StoryCommission, base: StoryDraft) -> str:
+        """Small-model job: one on-screen headline over sentences the verifier will check. The verifier checks the
+        headline too: any number not in the claims, or any unsupported state, blocks it."""
+        ins = self.rt.insight(c.insight_id)
+        facts = "\n".join(f"- {sg.text}" for sg in base.segments)
+        raw = await self.rt.provider.chat([
+            {"role": "system", "content": HEADLINE_PROMPT},
+            {"role": "user", "content": f"Story: {editorial.DETECTOR_LABEL.get(ins['detector'], ins['detector'])}, "
+                                        f"{ins['minute']}'.\nFacts:\n{facts}\nHeadline:"}],
+            json_mode=False, max_tokens=24, temperature=0.3)
+        return clean_headline(raw)
+
     async def draft(self, c: StoryCommission, b: EvidenceBrief, version: int = 1, prev: Optional[StoryDraft] = None,
                     feedback: Optional[VerificationResult] = None) -> StoryDraft:
         rt, timer = self.rt, Timer()
@@ -105,7 +136,20 @@ class WriterAgent:
         action = "drafted" if prev is None else f"revised (v{version})"
         draft: Optional[StoryDraft] = None
         last_chance = prev is not None and version > MAX_MODEL_VERSION   # final revision: no more model guesses
-        if rt.provider.uses("writer") and not last_chance:
+        if rt.provider.uses("writer") and not last_chance and rt.provider.writer_scope() == "headline":
+            try:
+                base = self._template(c, version)
+                if prev is not None and feedback is not None:   # keep only what the verifier accepted
+                    bad = {r.segment_index for r in feedback.rejected_claims if r.verdict == "blocked"}
+                    kept = [sg for i, sg in enumerate(prev.segments) if i not in bad and not sg.injected]
+                    base.segments = kept or base.segments
+                base.headline = await self._model_headline(c, base)
+                base.writer = f"template sentences + {rt.provider.label()} headline"
+                draft = base
+            except Exception as exc:
+                rt.trace.emit(self.name, "model headline failed, using template", "retry",
+                              commission_id=c.commission_id, output_summary=str(exc)[:200])
+        elif rt.provider.uses("writer") and not last_chance:
             try:
                 draft = await self._model_draft(c, b, prev, feedback, version)
             except Exception as exc:

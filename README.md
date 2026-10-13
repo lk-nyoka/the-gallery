@@ -161,6 +161,18 @@ Momentum detection is tuned for precision over recall: every detection inside a 
 
 Models are swappable and never trusted with final factual approval: `MODEL_PROVIDER=template | foundry_local | azure_openai | openai_compatible`. Any model failure falls back to the deterministic template writer, and verification is identical either way.
 
+## Who it's for
+
+The console asks who you are and sets itself up for you (switch any time with **Set up for**; **Tour** walks you through it):
+
+| | What they get |
+|---|---|
+| **Production companies and broadcasters** | The live desk: approve stories, build half-time and full-time packages (download as script, CSV or JSON), and put approved graphics into **OBS, vMix, Wirecast or CasparCG** with a transparent browser-source page, or into Vizrt/Chyron/Ross from a JSON data feed |
+| **League and club media teams** | The same desk with house rules up front (what is always blocked, what needs a producer, where each feed may be shown), readiness, corrections and a downloadable decision log |
+| **Fans** | A simple match companion: the story right now, their club and player first, every sentence fact-checked, works on a phone |
+
+Step-by-step for each: [`docs/10-user-guide.md`](docs/10-user-guide.md).
+
 ## Live demo
 
 **[the-gallery-dm6q.onrender.com](https://the-gallery-dm6q.onrender.com)** runs the same code with synthetic data and the template writer. Every visitor gets their own sandbox, so your approvals never show up for anyone else.
@@ -221,7 +233,7 @@ Tools: `list_matches`, `get_match_state`, `get_verified_storylines`, `get_storyl
 ```bash
 pip install -r requirements-dev.txt
 ruff check backend
-pytest -q                          # 69 tests: detectors, verifier, every agent, the workflow, personalisation, MCP, production hardening
+pytest -q                          # 71 tests: detectors, verifier, every agent, the workflow, personalisation, MCP, production hardening
 cd backend && python -m gallery.benchmark --quick
 ```
 
@@ -264,6 +276,7 @@ cd backend && python -m gallery.benchmark --quick
 | [`07-test-guide.md`](docs/07-test-guide.md) | How to test each feature |
 | [`08-differentiation.md`](docs/08-differentiation.md) | How this differs from existing tools |
 | [`09-operations.md`](docs/09-operations.md) | Configuration, deploy, monitoring, limits, incident runbook |
+| [`10-user-guide.md`](docs/10-user-guide.md) | Quick starts for producers, league media teams and fans; graphics setup; other sports |
 
 ## Team
 

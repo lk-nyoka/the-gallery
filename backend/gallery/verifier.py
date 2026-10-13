@@ -43,6 +43,8 @@ QUALITATIVE = [
 
 # Words that declare a result. Mid-match they are false even when every number is true, so a human checks them.
 # House style for a league-operated surface: no abuse, blame, speculation about officials, or betting talk.
+POLICY_TERMS = ["robbed", "cheat", "disgrace", "shambles", "pathetic", "embarrassing", "scandal", "bottled", "choked",
+                "clueless", "useless", "sacked", "dive", "odds", "betting", "punters", "accumulator", "wager"]
 POLICY_WORDS = re.compile(r"\b(robbed|cheat(?:s|ed|ing)?|disgrace(?:ful)?|shambles|pathetic|embarrass(?:ing|ment)|"
                           r"scandal(?:ous)?|bottled|chok(?:e|ed|ing)|clueless|useless|sack(?:ed|ing)?|div(?:e|ed|ing)|"
                           r"odds|bet(?:s|ting)?|punters?|accumulator|wager)\b", re.I)

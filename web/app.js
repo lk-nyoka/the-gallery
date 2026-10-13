@@ -117,7 +117,7 @@
         S.rankings = s.rankings; S.funnel = s.funnel;
         S.events.forEach((e) => e.player && S.players[e.team_id]?.add(e.player));
         S.trace = s.trace || []; S.provider = s.provider; S.storyTrace = {};
-        setupMode(); break;
+        setupMode(); if (ROLE.now === "fan") applyFan(); break;
       }
       case "trace": {
         const t = msg.trace; S.trace.push(t); if (S.trace.length > 600) S.trace.splice(0, S.trace.length - 600);
@@ -405,9 +405,6 @@
     }
   }
   setInterval(tickOverlay, 300);
-  $("copyOverlay").onclick = async () => {
-    try { await navigator.clipboard.writeText(JSON.stringify(OV.feed || {}, null, 2)); toast("Overlay feed copied"); } catch (_) { toast("Copy failed", true); }
-  };
 
   // ------------------------------------------------------------------ pipeline strip
   function renderPipe() {
@@ -429,7 +426,7 @@
   $("helpBtn").onclick = openHelp;
   $("helpClose").onclick = () => { $("help").classList.add("hidden"); try { localStorage.setItem("gallery.helpSeen", "1"); } catch (_) {} };
   document.querySelectorAll(".pipe li").forEach((li) => (li.onclick = openHelp));
-  try { if (!localStorage.getItem("gallery.helpSeen")) openHelp(); } catch (_) {}
+
   document.querySelectorAll("#toolsMenu .menu-item").forEach((b) => b.addEventListener("click", () => $("toolsMenu").removeAttribute("open")));
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { $("help").classList.add("hidden"); $("toolsMenu").removeAttribute("open"); } });
 
@@ -442,10 +439,11 @@
 
   function renderQueue() {
     const ranking = S.rankings[S.market] || [];
-    const top = ranking.map((r) => ({ r, s: storyFor(r.insight_id) })).filter((x) => x.s && x.s.status !== "rejected").slice(0, 3)
+    const fan = ROLE.now === "fan";
+    const top = ranking.map((r) => ({ r, s: storyFor(r.insight_id) })).filter((x) => x.s && x.s.status !== "rejected" && (!fan || fanSafe(x.s))).slice(0, fan ? 1 : 3)
       .map((x, i) => ({ ...x, r: { ...x.r, pos: i + 1 } }));
     $("queue").innerHTML = top.length ? top.map(({ r, s }) => card(s, r, false)).join("")
-      : `<div class="empty">${S.events.length ? "Watching… no story in the last 15 minutes yet." : (S.snap.mode === "live" ? "Press Kick-off, then log events as you watch." : S.snap.mode === "real" ? `Real match: ${esc(S.snap.meta.date || "")} · ${esc(S.snap.meta.stadium || "")}. Press Play to replay it event by event.` : "Press Play to start the replay.")}</div>`;
+      : `<div class="empty">${S.events.length ? (fan ? "Nothing big in the last 15 minutes. Stories appear here the moment something happens." : "Watching… no story in the last 15 minutes yet.") : (S.snap.mode === "live" ? "Press Kick-off, then log events as you watch." : S.snap.mode === "real" ? `Real match: ${esc(S.snap.meta.date || "")} · ${esc(S.snap.meta.stadium || "")}. Press Play to replay it event by event.` : fan ? "Press ▶ Play to watch the match unfold. This is a made-up match, replayed event by event." : "Press Play to start the replay.")}</div>`;
     const f = S.funnel || {};
     $("queueNote").textContent = S.market === "viewer" && S.viewer
       ? `What ${fanLabel()} would see: the same checked stories, re-ordered and trimmed for them.`
@@ -453,7 +451,7 @@
       : "The three strongest checked stories from the last 15 minutes, ranked by code. Click one to review it.";
     $("funnel").textContent = `${f.insights || 0} insights → ${f.storylines || 0} storylines → ${f.verified || 0} verified · ${f.flagged || 0} flagged · ${f.blocked || 0} blocked → ${f.approved || 0} approved`;
     const rankById = Object.fromEntries((S.rankings[S.market] || []).map((r) => [r.insight_id, r]));
-    const list = Object.values(S.storylines).filter((s) => s.market === "world").sort((a, b) => b.minute - a.minute || b.created_at - a.created_at);
+    const list = Object.values(S.storylines).filter((s) => s.market === "world" && (!fan || fanSafe(s))).sort((a, b) => b.minute - a.minute || b.created_at - a.created_at);
     $("allStories").innerHTML = list.map((w) => card(S.market === "world" ? w : (storyFor(w.insight_id) || w), rankById[w.insight_id], true)).join("") || `<div class="empty">No storylines yet.</div>`;
   }
 
@@ -537,6 +535,7 @@
   function renderInspector() {
     const s = S.storylines[S.selected];
     if (!s) return;
+    if (ROLE.now === "fan") return renderFanStory(s);
     const r = (S.rankings[S.market] || []).find((x) => x.insight_id === s.insight_id);
     $("inspTitle").textContent = `${DET[s.detector]} · ${s.minute}' · ${s.market}`;
     const factors = r ? Object.entries(r.factors).map(([k, f]) =>
@@ -623,8 +622,13 @@
 
   // ------------------------------------------------------------------ hover card (evidence)
   function sqlWithParams(sql, params) { let i = 0; return sql.replace(/\?/g, () => { const p = params[i++]; return typeof p === "string" ? `'${p}'` : String(p); }); }
-  document.addEventListener("mouseover", (ev) => {
+  document.addEventListener("mouseover", (ev) => showEvidence(ev.target.closest(".seg-row")));
+  document.addEventListener("click", (ev) => {     // touch screens have no hover: tap a sentence for its proof
     const row = ev.target.closest(".seg-row");
+    if (row && !ev.target.closest("input, textarea, button, label")) showEvidence(row);
+    else if (!ev.target.closest("#hovercard")) $("hovercard").classList.add("hidden");
+  }, true);
+  function showEvidence(row) {
     const hc = $("hovercard");
     if (!row) { hc.classList.add("hidden"); return; }
     const s = S.storylines[row.dataset.sid]; const g = s?.segments[+row.dataset.idx];
@@ -642,8 +646,8 @@
     hc.innerHTML = html; hc.classList.remove("hidden");
     const rect = row.getBoundingClientRect();
     let left = rect.left - 450; if (left < 8) left = Math.min(rect.right + 10, window.innerWidth - 450);
-    hc.style.left = left + "px"; hc.style.top = Math.min(rect.top, window.innerHeight - hc.offsetHeight - 10) + "px";
-  });
+    hc.style.left = Math.max(8, left) + "px"; hc.style.top = Math.max(8, Math.min(rect.top, window.innerHeight - hc.offsetHeight - 10)) + "px";
+  }
 
   // ------------------------------------------------------------------ packages
   async function buildPackage(kind) {
@@ -723,6 +727,7 @@
         <li><b>A human approves everything.</b> Blocked text can't be approved; judgement wording needs an explicit tick.</li>
         <li><b>Facts can change.</b> Every approved story is re-checked after a data correction; a wrong one is pulled and a corrected version drafted.</li>
         <li><b>Synthetic data.</b> Fictional clubs and players; no real league data is stored or published.</li></ul></div>`;
+    houseRules().then((h) => { if (h && S.tab === "trust" && !$("trust").querySelector(".rules")) $("trust").insertAdjacentHTML(ROLE.now === "league" ? "afterbegin" : "beforeend", h); });
     $("trust").innerHTML = agentCard + safe + (real.length + recent.length ? realCard : "") + `
       <div class="panel"><div class="panel-h"><span>Planted patterns found</span><span class="muted small">${bench.seeds.length} synthetic matches</span></div>
         <div class="stat-big">${d.found}/${d.planted}</div>
@@ -853,9 +858,7 @@
   document.querySelectorAll("#vMode button").forEach((b) => (b.onclick = () => {
     S.vMode = b.dataset.v; document.querySelectorAll("#vMode button").forEach((x) => x.classList.toggle("on", x === b));
   }));
-  $("viewerDialog").addEventListener("close", async () => {
-    if ($("viewerDialog").returnValue !== "ok") return;
-    const body = { mode: S.vMode, club: $("vClub").value || null, player: $("vPlayer").value || null, base_market: $("vLang").value };
+  async function setViewer(body) {
     try {
       const r = await api(`/api/matches/${S.matchId}/viewer`, { method: "POST", body });
       S.viewer = r.market.viewer; S.explainers = r.explainers; S.market = "viewer";
@@ -863,6 +866,10 @@
       $("audienceSel").value = "viewer"; setAudienceHelp();
       refreshPlayer(true); schedule();
     } catch (e) { toast(e.message, true); }
+  }
+  $("viewerDialog").addEventListener("close", async () => {
+    if ($("viewerDialog").returnValue !== "ok") return;
+    setViewer({ mode: S.vMode, club: $("vClub").value || null, player: $("vPlayer").value || null, base_market: $("vLang").value });
   });
   function viewerLabel() {
     const v = S.viewer; if (!v) return "For you…";
@@ -1057,6 +1064,208 @@
   document.addEventListener("click", (e) => {
     const c = e.target.closest(".card"); if (c && !e.target.closest("button")) select(c.dataset.sid);
   });
+
+  // ------------------------------------------------------------------ roles: who the screen is set up for
+  const ROLE_NAME = { producer: "Production", league: "League / club", fan: "Fan" };
+  const ROLE = { now: "producer" };
+  try { ROLE.now = localStorage.getItem("gallery.role") || ""; } catch (_) {}
+  function applyRole(role, opts = {}) {
+    ROLE.now = ROLE_NAME[role] ? role : "producer";
+    try { localStorage.setItem("gallery.role", ROLE.now); } catch (_) {}
+    document.body.dataset.role = ROLE.now;
+    $("roleName").textContent = ROLE_NAME[ROLE.now];
+    $("trustTab").textContent = ROLE.now === "fan" ? "Why you can trust it" : "Proof it works";
+    $("hovercard").classList.add("hidden");
+    if (ROLE.now === "fan") {
+      if (["newsroom", "audit"].includes(S.tab)) document.querySelector('.tab[data-tab="gallery"]').click();
+      if (S.snap) applyFan();
+    } else if (S.market === "viewer" && FAN.applied) {      // leaving fan mode: back to the producer feed
+      FAN.applied = false; S.market = "world"; S.viewer = null; $("audienceSel").value = "world"; setAudienceHelp(); renderPlayer();
+    }
+    if (S.selected) renderInspector();
+    schedule();
+    if (opts.tour) setTimeout(() => startTour(), 250);
+  }
+  $("welcome").addEventListener("close", () => {
+    const v = $("welcome").returnValue;
+    applyRole(ROLE_NAME[v] ? v : ROLE.now || "producer", { tour: !!ROLE_NAME[v] });
+  });
+  $("roleBtn").onclick = () => $("welcome").showModal();
+  $("tourBtn").onclick = () => startTour();
+
+  // ------------------------------------------------------------------ fan mode
+  const FAN = { depth: "casual", club: "", player: "", applied: false, match: null };
+  const fanSafe = (s) => s.overall !== "blocked" && !["rejected", "superseded", "needs_correction"].includes(s.status)
+    && (s.headline_verdict === "verified" || s.status === "approved");
+  async function fillFanPlayers() {
+    if (!S.matchId) return;
+    try {
+      const ps = await api(`/api/matches/${S.matchId}/players`);
+      $("fanPlayer").innerHTML = `<option value="">No player</option>` + ps.map((p) => `<option value="${esc(p.player)}">${esc(p.player)} · ${esc(p.team)}</option>`).join("");
+      $("fanPlayer").value = FAN.player;
+    } catch (_) {}
+  }
+  function applyFan() {
+    if (!S.snap || !S.matchId) return;
+    if (FAN.match !== S.matchId) { FAN.match = S.matchId; FAN.player = ""; fillFanPlayers(); }
+    $("fanHome").textContent = S.snap.names.HOME; $("fanAway").textContent = S.snap.names.AWAY;
+    $("fanClub").value = FAN.club;
+    FAN.applied = true;
+    setViewer({ mode: FAN.depth, club: FAN.club || null, player: FAN.player || null, base_market: "world" });
+  }
+  $("fanClub").onchange = (e) => { FAN.club = e.target.value; applyFan(); };
+  $("fanPlayer").onchange = (e) => { FAN.player = e.target.value; applyFan(); };
+  $("fanPlayer").addEventListener("focus", fillFanPlayers);
+  $("fanPlayer").addEventListener("pointerdown", fillFanPlayers);
+  document.querySelectorAll("#fanDepth button").forEach((b) => (b.onclick = () => {
+    FAN.depth = b.dataset.v; document.querySelectorAll("#fanDepth button").forEach((x) => x.classList.toggle("on", x === b)); applyFan();
+  }));
+  function renderFanStory(s) {
+    const v = S.viewer || { mode: "casual" };
+    const segs = s.segments.map((g, i) => [g, i]).filter(([g]) => g.verdict === "verified" && !g.struck);
+    const team = S.snap.names[s.team_id];
+    const nums = v.mode === "analyst" ? segs.flatMap(([g]) => (g.checks || []).filter((c) => typeof c.actual === "number")
+      .map((c) => `<span class="num">${esc(numLabel(c))} <b>${esc(c.actual)}</b></span>`)) : [];
+    $("inspTitle").textContent = `${s.minute}' · ${team}`;
+    $("inspBody").className = "insp";
+    $("inspBody").innerHTML = `<div class="small muted">${esc(DET[s.detector] || "")} · ${s.minute}' · <span class="tag ${teamClass(s.team_id)}">${esc(team)}</span></div>
+      <div class="headline">${esc(s.headline)}</div><div><span class="vchip verified">✓ Every sentence fact-checked</span></div>
+      <ul class="segs">${segs.map(([g, i]) => segRow(s, g, i, false)).join("")}</ul>
+      ${S.explainers[s.detector] ? `<p class="small muted">${esc(S.explainers[s.detector])}</p>` : ""}
+      ${nums.length ? `<div class="nums">${nums.join("")}</div>` : ""}
+      <p class="small muted" style="margin-top:10px">Tap or hover a sentence to see the match data that proves it.</p>`;
+  }
+
+  // ------------------------------------------------------------------ graphics outputs (OBS, vMix, data feed)
+  $("outputsBtn").onclick = () => {
+    const mk = S.market === "viewer" ? "world" : S.market;
+    const id = encodeURIComponent(S.matchId || ""), sess = encodeURIComponent(SESSION);
+    $("outOverlay").value = `${location.origin}/overlay?match=${id}&s=${sess}&market=${mk}`;
+    $("outOverlayOpen").href = $("outOverlay").value + "&bg=preview";
+    $("outFeed").value = `${location.origin}/api/matches/${id}/overlays?market=${mk}&s=${sess}`;
+    $("outputsDialog").showModal();
+  };
+  document.querySelectorAll("[data-copy]").forEach((b) => (b.onclick = async () => {
+    const el = $(b.dataset.copy); el.select();
+    try { await navigator.clipboard.writeText(el.value); toast("Link copied"); } catch (_) { toast("Select the link and copy it", true); }
+  }));
+
+  // ------------------------------------------------------------------ downloads
+  function download(name, text, type) {
+    const url = URL.createObjectURL(new Blob([text], { type }));
+    const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+  const csvCell = (v) => { const t = v == null ? "" : typeof v === "object" ? JSON.stringify(v) : String(v); return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+  const csv = (rows) => rows.map((r) => r.map(csvCell).join(",")).join("\r\n") + "\r\n";
+  const fileBase = () => { const n = S.snap?.names || {}; return `${(n.HOME || "home")}-v-${(n.AWAY || "away")}`.toLowerCase().replace(/[^a-z0-9]+/g, "-"); };
+  $("dlScript").onclick = () => {
+    const p = S.pkg; if (!p) return;
+    const lines = [`${p.label.toUpperCase()} PACKAGE · ${p.scoreline}`, `Market: ${p.market} · ${p.items.length} approved stories · coverage: ${p.coverage?.summary || "n/a"}`, ""];
+    p.items.forEach((i, n) => lines.push(`${n + 1}. ${i.headline}`, `   ${i.script}`, `   CLIP ${i.clip_cue.from}–${i.clip_cue.to} · ${i.clip_cue.label}`, ""));
+    lines.push("RECAP", p.recap || "", "", "SOCIAL", p.social || "", "", "Every sentence was checked against the match data by The Gallery and approved by a producer.");
+    download(`${fileBase()}-${p.kind || "package"}-script.txt`, lines.join("\r\n"), "text/plain;charset=utf-8");
+  };
+  $("dlCsv").onclick = () => {
+    const p = S.pkg; if (!p) return;
+    const rows = [["order", "template", "team", "headline", "script", "clip_from", "clip_to", "clip_label", "fields"]];
+    p.items.forEach((i, n) => rows.push([n + 1, i.graphic_payload.template, i.graphic_payload.fields?.team || "", i.headline, i.script, i.clip_cue.from, i.clip_cue.to, i.clip_cue.label, i.graphic_payload.fields || {}]));
+    download(`${fileBase()}-${p.kind || "package"}-graphics.csv`, csv(rows), "text/csv;charset=utf-8");
+  };
+  $("dlJson").onclick = () => { if (S.pkg) download(`${fileBase()}-${S.pkg.kind || "package"}.json`, JSON.stringify(S.pkg, null, 2), "application/json"); };
+  $("dlAudit").onclick = async () => {
+    try {
+      const rows = await api(`/api/matches/${S.matchId}/audit`);
+      const out = [["time_utc", "storyline_id", "who", "action", "headline_before", "headline_after"]];
+      for (const r of rows.slice().reverse()) {
+        const b = JSON.parse(r.before || "{}"), a = JSON.parse(r.after || "{}");
+        out.push([new Date(r.at * 1000).toISOString(), r.storyline_id, r.actor, r.action, b.headline || "", a.headline || ""]);
+      }
+      for (const c of S.snap.corrections || []) out.push([new Date(c.at * 1000).toISOString(), "", "data feed", "correction", c.reason, `${c.flagged.length} approved stories pulled`]);
+      download(`${fileBase()}-decision-log.csv`, csv(out), "text/csv;charset=utf-8");
+    } catch (e) { toast(e.message, true); }
+  };
+
+  // ------------------------------------------------------------------ house rules (for league and club media teams)
+  let policy = null;
+  async function houseRules() {
+    if (!policy) { try { policy = await api("/api/policy"); } catch (_) { return ""; } }
+    const chips = (xs, cls) => `<div class="chips">${xs.map((x) => `<span class="chip ${cls}">${esc(x)}</span>`).join("")}</div>`;
+    const rights = Object.entries(policy.rights).map(([k, r]) => `<span>${esc({ world: "World feed", br: "Brazil", za: "South Africa", viewer: "Single fan" }[k] || k)}</span><span>${esc(r.territories.join(", "))} · ${esc(r.surfaces.join(", "))} · clips: ${esc(r.clip_rights.replace(/_/g, " "))}</span>`).join("");
+    return `<div class="panel span2"><div class="panel-h"><span>House rules every story is checked against</span><span class="muted small">a real deployment loads these per league and rights holder</span></div>
+      <div class="rules">
+        <div><h4>Always blocked: states the match data can't show</h4>${chips(policy.blocked_states, "bad")}</div>
+        <div><h4>Needs a producer's tick: judgement words</h4>${chips(policy.needs_producer_wording, "warn")}</div>
+        <div><h4>Needs a producer's tick: house style (abuse, blame, betting)</h4>${chips(policy.needs_producer_policy, "warn")}</div>
+        <div><h4>Needs a producer's tick: result words before full time</h4>${chips(policy.needs_producer_result, "warn")}</div>
+        <div><h4>Where each feed may be shown</h4><div class="kv small">${rights}</div></div>
+      </div></div>`;
+  }
+
+  // ------------------------------------------------------------------ guided tour
+  const TOURS = {
+    producer: [
+      ["playBtn", "Start the match", "Press Play. This replays a made-up match event by event, as if it were live. In production the feed comes from your data provider."],
+      ["queue", "Stories arrive on their own", "AI agents write a story for each big moment. Code re-checks every number before it reaches you. Click one."],
+      ["inspector", "Approve what goes out", "Green means proven by the data, amber needs your eye, red can never air. Hover a sentence for its proof, then press Approve for air."],
+      ["outputsBtn", "Put it on screen", "Approved stories become lower thirds. Add this page to OBS, vMix or your playout as a browser source, or read the data feed."],
+      ["htBtn", "Build the half-time package", "One click gathers the approved stories into a presenter script, graphics data, clip times, recap and a social post. Download it as text, CSV or JSON."],
+    ],
+    league: [
+      ["playBtn", "Start the match", "Press Play to replay a made-up match. Stories appear as it happens."],
+      ["inspector", "Every sentence is proven", "Each sentence carries a claim that code re-computes from the match data. Hover a sentence to see the exact query and the events behind it."],
+      ["audienceSel", "One set of facts, many markets", "Each market gets its own lead story and language, with its own rights terms. Translations are re-checked."],
+      ["readiness", "Ready for the break?", "A single go / no-go: enough approved stories, every goal and red card covered, nothing contradicted by a data correction."],
+      ["trustTab", "House rules and proof", "See the words that are always blocked or need a producer, where each feed may be shown, and the test results."],
+    ],
+    fan: [
+      ["playBtn", "Press Play", "This replays a made-up match minute by minute, as if you were watching live."],
+      ["fanCtl", "Follow your club or a player", "Pick a club or a player and their moments come first. Choose Simple for plain words or All the stats for the numbers."],
+      ["queue", "The story right now", "The biggest moment of the last 15 minutes, written as it happens."],
+      ["inspector", "Every fact is checked", "Tap a sentence to see the match data that proves it. If the data can't prove it, you never see it."],
+    ],
+  };
+  const TOUR = { steps: [], i: 0, el: null };
+  function startTour() {
+    const steps = (TOURS[ROLE.now] || TOURS.producer).filter(([id]) => { const el = $(id); return el && el.offsetParent !== null; });
+    if (!steps.length) return;
+    if (S.tab !== "gallery") document.querySelector('.tab[data-tab="gallery"]').click();
+    Object.assign(TOUR, { steps, i: 0 }); showTourStep();
+  }
+  function endTour() {
+    if (TOUR.el) TOUR.el.classList.remove("tour-focus");
+    TOUR.el = null; $("tour").classList.add("hidden");
+  }
+  function showTourStep() {
+    if (TOUR.el) TOUR.el.classList.remove("tour-focus");
+    const [id, title, text] = TOUR.steps[TOUR.i];
+    const el = $(id); TOUR.el = el; el.classList.add("tour-focus");
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    $("tourStep").textContent = `Step ${TOUR.i + 1} of ${TOUR.steps.length}`;
+    $("tourTitle").textContent = title; $("tourText").textContent = text;
+    $("tourBack").disabled = TOUR.i === 0;
+    $("tourNext").textContent = TOUR.i === TOUR.steps.length - 1 ? "Done" : "Next";
+    $("tour").classList.remove("hidden");
+    setTimeout(placeTour, 350);
+  }
+  function placeTour() {
+    if (!TOUR.el) return;
+    const r = TOUR.el.getBoundingClientRect(), t = $("tour"), w = t.offsetWidth, h = t.offsetHeight;
+    let top = r.bottom + 14; if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 14);
+    if (top < 8 || (r.height > window.innerHeight * 0.6)) top = Math.max(8, Math.min(window.innerHeight - h - 8, r.top + 12));
+    const left = Math.max(12, Math.min(window.innerWidth - w - 12, r.left));
+    t.style.top = top + "px"; t.style.left = left + "px";
+  }
+  $("tourNext").onclick = () => { if (TOUR.i >= TOUR.steps.length - 1) return endTour(); TOUR.i++; showTourStep(); };
+  $("tourBack").onclick = () => { if (TOUR.i > 0) { TOUR.i--; showTourStep(); } };
+  $("tourSkip").onclick = endTour;
+  window.addEventListener("resize", placeTour);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("tour").classList.contains("hidden")) endTour(); });
+
+  document.body.dataset.role = ROLE_NAME[ROLE.now] ? ROLE.now : "producer";
+  $("roleName").textContent = ROLE_NAME[document.body.dataset.role];
+  if (!ROLE_NAME[ROLE.now]) { ROLE.now = "producer"; $("welcome").showModal(); }
+  else applyRole(ROLE.now);
 
   api("/api/health").then((h) => {
     const v = !!h.validation_sources;

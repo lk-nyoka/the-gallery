@@ -37,12 +37,14 @@
 
     <div class="top-right">
       <span class="badge" id="writerBadge" title="Which model writes the words. The checking is the same either way.">Writer: templates</span>
+      <button class="btn ghost role-btn" id="roleBtn" title="Change who the screen is set up for">Set up for: <b id="roleName">Production</b></button>
+      <button class="btn ghost" id="tourBtn" title="A short guided tour of this screen">Tour</button>
       <button class="btn help" id="helpBtn" aria-controls="help">How it works</button>
     </div>
   </header>
 
   <!-- ============================================================ pipeline: the product in one line -->
-  <ol class="pipe" id="pipe" aria-label="How a story gets to air">
+  <ol class="pipe pro-only" id="pipe" aria-label="How a story gets to air">
     <li data-step="feed"><b>Match events</b><span id="pipeFeed">waiting for kick-off</span></li>
     <li data-step="agents"><b>Agents draft stories</b><span id="pipeAgents">nothing yet</span></li>
     <li data-step="check"><b>Code checks every fact</b><span id="pipeCheck">nothing to check</span></li>
@@ -56,7 +58,7 @@
       <label for="matchSelect">Match</label>
       <div class="row">
         <select id="matchSelect"></select>
-        <select id="moreSources" aria-label="Load another match">
+        <select id="moreSources" class="pro-only" aria-label="Load another match">
           <option value="">Load another…</option>
           <option value="fixture:A">Fixture A: a red card turns the match</option>
           <option value="fixture:B">Fixture B: a goal is re-credited (data correction)</option>
@@ -95,7 +97,17 @@
       <small>You log events while you watch; the clock runs here.</small>
     </div>
 
-    <div class="ctl">
+    <div class="ctl fan-only" id="fanCtl">
+      <label for="fanClub">Follow</label>
+      <div class="row">
+        <select id="fanClub" aria-label="Your club"><option value="">Both teams</option><option value="HOME" id="fanHome">Home</option><option value="AWAY" id="fanAway">Away</option></select>
+        <select id="fanPlayer" aria-label="A player to follow"><option value="">No player</option></select>
+        <span class="seg" id="fanDepth" role="group" aria-label="How much detail"><button type="button" data-v="casual" class="on">Simple</button><button type="button" data-v="analyst">All the stats</button></span>
+      </div>
+      <small>Pick your club or a player; their moments come first.</small>
+    </div>
+
+    <div class="ctl pro-only">
       <label for="audienceSel">Show stories for</label>
       <div class="row">
         <select id="audienceSel">
@@ -108,7 +120,7 @@
       <small id="audienceHelp">Same checked facts; the order and angle change per audience.</small>
     </div>
 
-    <div class="ctl">
+    <div class="ctl pro-only">
       <label>Build package</label>
       <div class="row">
         <button class="btn" id="htBtn">Half-time <span id="htCountdown"></span></button>
@@ -117,7 +129,7 @@
       <small>Collects approved stories into a script, graphics and recap.</small>
     </div>
 
-    <details class="ctl tools" id="toolsMenu">
+    <details class="ctl tools pro-only" id="toolsMenu">
       <summary>Test tools</summary>
       <div class="menu">
         <button class="menu-item" id="redTeamBtn"><b>Plant 2 false sentences</b><span>The next two AI drafts each get one labelled lie. Watch the checker catch it and the Writer fix it.</span></button>
@@ -129,9 +141,9 @@
   <!-- ============================================================ tabs -->
   <div class="tabs" role="tablist">
     <button class="tab on" data-tab="gallery">Live desk</button>
-    <button class="tab" data-tab="newsroom">How the agents worked <span class="tabcount" id="traceCount"></span></button>
-    <button class="tab" data-tab="trust">Proof it works</button>
-    <button class="tab" data-tab="audit">Decision log</button>
+    <button class="tab pro-only" data-tab="newsroom">How the agents worked <span class="tabcount" id="traceCount"></span></button>
+    <button class="tab" data-tab="trust" id="trustTab">Proof it works</button>
+    <button class="tab pro-only" data-tab="audit">Decision log</button>
   </div>
 
   <!-- ============================================================ live desk -->
@@ -154,7 +166,7 @@
     </section>
     <div class="grid">
     <section class="col left">
-      <div class="panel hidden" id="feedPanel">
+      <div class="panel hidden pro-only" id="feedPanel">
         <div class="panel-h"><h2 id="feedTitle">About this match</h2><span class="hint" id="feedState"></span></div>
         <div class="small" id="feedCaps"></div>
         <div class="kv small" id="teamStats"></div>
@@ -165,7 +177,7 @@
         <ol id="feed" class="feed"></ol>
       </div>
 
-      <div class="panel">
+      <div class="panel pro-only">
         <div class="panel-h"><h2>Agents at work</h2><span class="hint">latest first</span></div>
         <ol id="miniTrace" class="trace mini"></ol>
       </div>
@@ -178,25 +190,26 @@
           <div class="bug"><span id="fbHome">HOM</span><b id="fbScore">0–0</b><span id="fbAway">AWY</span><span class="bug-clock" id="fbClock">00:00</span></div>
           <div class="ptag hidden" id="fTag"><span class="ptag-name"></span><span class="ptag-val"></span></div>
           <div class="l3 hidden" id="fL3"><div class="l3-team"></div><div class="l3-body"><div class="l3-head"></div><div class="l3-sub"></div></div></div>
-          <p class="frame-empty" id="fEmpty">Approve a story and it appears here as an on-screen graphic.</p>
+          <p class="frame-empty" id="fEmpty"><span class="pro-only">Approve a story and it appears here as an on-screen graphic.</span><span class="fan-only">Fast shots and long passes get a name tag here automatically.</span></p>
         </div>
         <div class="frame-foot">
-          <small>Only stories you approve go on screen. Name tags fire on their own for shots of 100 km/h or more and completed passes of 40 m or more.</small>
-          <button class="btn ghost" id="copyOverlay" title="Copy the timed overlay feed (JSON) a graphics engine would read">Copy overlay feed</button>
+          <small><span class="pro-only">Only stories you approve go on screen. </span>Name tags fire on their own for shots of 100 km/h or more and completed passes of 40 m or more.</small>
+          <button class="btn pro-only" id="outputsBtn" title="Put these graphics into OBS, vMix, Wirecast or CasparCG, or read them as data">Use in your graphics system</button>
         </div>
       </div>
-      <div id="readiness" class="readiness"></div>
-      <div id="impact" class="impact hidden"></div>
+      <div id="readiness" class="readiness pro-only"></div>
+      <div id="impact" class="impact hidden pro-only"></div>
+      <p class="fan-note fan-only">Every sentence below was checked against the match data by code before you see it. In a real broadcast a producer also approves each story. Tap a sentence to see the proof.</p>
 
       <div class="section-h">
-        <h2>Top stories now</h2>
+        <h2><span class="pro-only">Top stories now</span><span class="fan-only">The story right now</span></h2>
         <p id="queueNote">The three strongest checked stories from the last 15 minutes, ranked by code. Click one to review it.</p>
       </div>
       <div id="queue" class="queue"></div>
 
       <div class="section-h">
-        <h2>All stories</h2>
-        <p id="funnel"></p>
+        <h2><span class="pro-only">All stories</span><span class="fan-only">Earlier in the match</span></h2>
+        <p id="funnel" class="pro-only"></p>
       </div>
       <div id="allStories" class="stories"></div>
     </section>
@@ -220,15 +233,15 @@
       </div>
 
       <div class="panel grow" id="inspector">
-        <div class="panel-h"><h2>Story details</h2><span class="hint" id="inspTitle"></span></div>
+        <div class="panel-h"><h2><span class="pro-only">Story details</span><span class="fan-only">The story</span></h2><span class="hint" id="inspTitle"></span></div>
         <div id="inspBody" class="insp-empty">
-          <p class="lead">Pick a story to review it.</p>
+          <p class="lead"><span class="pro-only">Pick a story to review it.</span><span class="fan-only">Pick a story to read it in full.</span></p>
           <ul class="howto">
             <li><span class="dot ok"></span>Green tick: the checker re-computed every number from the match data.</li>
             <li><span class="dot warn"></span>Amber: numbers are right, the wording needs your eye.</li>
             <li><span class="dot bad"></span>Red cross: false or unsupported. It can't go on air.</li>
           </ul>
-          <p class="muted">Hover any sentence to see the exact data behind it. Approve, edit or reject from here.</p>
+          <p class="muted">Hover or tap any sentence to see the exact data behind it.<span class="pro-only"> Approve, edit or reject from here.</span></p>
         </div>
       </div>
     </section>
@@ -261,7 +274,7 @@
   </main>
 
   <main id="view-audit" class="view hidden">
-    <div class="panel"><div class="panel-h"><h2>Every decision and correction</h2></div><div id="audit"></div></div>
+    <div class="panel"><div class="panel-h"><h2>Every decision and correction</h2><button class="btn ghost" id="dlAudit" title="For compliance records: every approval, edit, rejection and correction">Download (.csv)</button></div><div id="audit"></div></div>
   </main>
 
   <!-- ============================================================ help -->
@@ -272,6 +285,14 @@
     </div>
     <div class="help-b">
       <p class="lead">A live football production desk. AI agents spot the stories in a match and write them up; plain code checks every fact against the match data; you decide what goes on air.</p>
+
+      <h3>Set up for you</h3>
+      <dl class="glossary">
+        <dt>Production</dt><dd>The full live desk: approve stories, build packages, and send graphics to OBS, vMix, Wirecast, CasparCG or a data-driven graphics system.</dd>
+        <dt>League / club</dt><dd>The same desk, with the checks a rights holder cares about up front: per-market feeds and rights, readiness, house rules and a downloadable decision log.</dd>
+        <dt>Fan</dt><dd>A simple match companion: the story right now, your club and your player first, every sentence fact-checked. No producer controls.</dd>
+      </dl>
+      <p class="small muted">Switch with <b>Set up for</b> at the top. <b>Tour</b> walks you through the screen in under a minute.</p>
 
       <h3>Try it in one minute</h3>
       <ol class="steps">
@@ -288,7 +309,7 @@
         <dt>Show stories for</dt><dd>Who the stories are for. Brazil and South Africa get a different lead story and their own language. <b>A single fan</b> lets you pick casual or analyst depth, a favourite club and a player to follow.</dd>
         <dt>Build package</dt><dd>Gathers every approved story into what a studio needs at the break: script, graphics data, clip times, recap and a social post, plus the rights terms.</dd>
         <dt>Test tools</dt><dd><b>Plant 2 false sentences</b> makes the AI writer slip a labelled lie into its next two drafts, so you can watch the checker stop it.</dd>
-        <dt>On screen</dt><dd>What viewers would see: the score bug, approved stories as lower thirds, and automatic name tags when a shot passes 100 km/h or a pass passes 40 m. <b>Copy overlay feed</b> gives the timed data a graphics system would read.</dd>
+        <dt>On screen</dt><dd>What viewers would see: the score bug, approved stories as lower thirds, and automatic name tags when a shot passes 100 km/h or a pass passes 40 m. <b>Use in your graphics system</b> gives a transparent graphics page for OBS or vMix and the same cues as a data feed.</dd>
         <dt>Readiness</dt><dd>One score for "can we go to the break?": enough approved stories, every goal and red card covered, no outstanding corrections.</dd>
         <dt>Who is on top</dt><dd>Attacking threat per minute for each team, with goals and red cards marked. The sentence under it says what the last ten minutes looked like.</dd>
       </dl>
@@ -318,11 +339,64 @@
     <div class="drawer-h">
       <h2 id="pkgTitle">Package</h2>
       <span class="hint" id="pkgMeta"></span>
+      <span class="dl-group"><span class="hint">Download:</span>
+        <button class="btn ghost" id="dlScript" title="Presenter script and clip times, as plain text">Script (.txt)</button>
+        <button class="btn ghost" id="dlCsv" title="One row per graphic, for a graphics system's data source">Graphics (.csv)</button>
+        <button class="btn ghost" id="dlJson" title="The whole package, including rights terms">Everything (.json)</button></span>
       <button class="btn ghost" id="copyPayload">Copy graphics data</button>
       <button class="btn ghost" id="closePkg">Close</button>
     </div>
     <div id="pkgBody" class="drawer-b"></div>
   </aside>
+
+  <dialog id="welcome" class="welcome" aria-labelledby="welcomeTitle">
+    <form method="dialog" class="dlg">
+      <div class="welcome-brand"><span class="tally-lamp" aria-hidden="true"></span><span>The Gallery</span></div>
+      <h2 id="welcomeTitle">Live match stories you can trust</h2>
+      <p class="lead">AI writes the stories as the match happens. Plain code checks every fact against the match data. Nothing unproven goes out.</p>
+      <p class="pick">Who are you? We'll set the screen up for you.</p>
+      <div class="roles">
+        <button class="role" value="producer"><span class="role-ic" aria-hidden="true">▶</span><b>Production company or broadcaster</b>
+          <span>Run the live desk: approve stories, build the half-time package, send graphics to OBS, vMix or your playout.</span></button>
+        <button class="role" value="league"><span class="role-ic" aria-hidden="true">✓</span><b>League or club media team</b>
+          <span>See that every story is accurate, on-brand and cleared for each market, with a full record of who approved what.</span></button>
+        <button class="role" value="fan"><span class="role-ic" aria-hidden="true">♥</span><b>Fan</b>
+          <span>Follow a match in plain words: the big moments, your club and your player, every fact checked.</span></button>
+      </div>
+      <p class="muted small">Fictional clubs and players; no real matches. You can switch any time with <b>Set up for</b> at the top.</p>
+    </form>
+  </dialog>
+
+  <dialog id="outputsDialog" class="wide">
+    <form method="dialog" class="dlg">
+      <h2>Use these graphics in your production</h2>
+      <p class="muted">Only stories you approve are sent out. Player tags are computed from the match data.</p>
+      <div class="out">
+        <h3>1 · Browser source (OBS, vMix, Wirecast, CasparCG)</h3>
+        <p>A transparent 1920×1080 page with the score bug, lower thirds and player tags. Add it as a <b>Browser source</b> in OBS or a <b>Web Browser input</b> in vMix, above your programme feed.</p>
+        <div class="copyrow"><input id="outOverlay" readonly aria-label="Graphics page link"><button type="button" class="btn" data-copy="outOverlay">Copy</button><a class="btn ghost" id="outOverlayOpen" target="_blank" rel="noopener">Preview</a></div>
+        <p class="small muted">Add <code>&amp;bug=0</code> to hide the score bug, or <code>&amp;bg=green</code> for a green-screen key.</p>
+      </div>
+      <div class="out">
+        <h3>2 · Data feed (Vizrt, Chyron, Ross, custom)</h3>
+        <p>The same cues as JSON, polled every second or two: start time, duration, template, headline, text, team and fields.</p>
+        <div class="copyrow"><input id="outFeed" readonly aria-label="Overlay data feed link"><button type="button" class="btn" data-copy="outFeed">Copy</button></div>
+      </div>
+      <div class="out">
+        <h3>3 · Half-time and full-time packages</h3>
+        <p>Build a package from the control bar, then download the presenter script, a graphics CSV or everything as JSON.</p>
+      </div>
+      <p class="small muted">On the public demo each link only works for your own sandbox, for as long as your match is running.</p>
+      <menu><button value="cancel" class="btn primary">Done</button></menu>
+    </form>
+  </dialog>
+
+  <div id="tour" class="tour hidden" role="dialog" aria-live="polite" aria-labelledby="tourTitle">
+    <div class="tour-step" id="tourStep"></div>
+    <h3 id="tourTitle"></h3>
+    <p id="tourText"></p>
+    <div class="tour-btns"><button class="btn ghost" id="tourSkip">Skip tour</button><span></span><button class="btn ghost" id="tourBack">Back</button><button class="btn primary" id="tourNext">Next</button></div>
+  </div>
 
   <div id="hovercard" class="hovercard hidden" role="tooltip"></div>
   <div id="toast" class="toast hidden" role="status"></div>

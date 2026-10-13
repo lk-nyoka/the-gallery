@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Gallery · On-air graphics</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23171B22'/%3E%3Ccircle cx='16' cy='16' r='8' fill='%23F0524F'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/overlay.css">
+</head>
+<body>
+  <!-- on-air layer: transparent everywhere except the graphics -->
+  <div id="stage" class="stage hidden" aria-live="polite">
+    <div class="o-bug" id="bug"><span id="bHome">HOM</span><b id="bScore">0–0</b><span id="bAway">AWY</span><span class="o-clock" id="bClock">00:00</span></div>
+    <div class="o-tag hidden" id="tag"><span class="o-tag-label" id="tagLabel"></span><span class="o-tag-name" id="tagName"></span><span class="o-tag-val" id="tagVal"></span></div>
+    <div class="o-l3 hidden" id="l3"><div class="o-l3-team" id="l3Team"></div><div class="o-l3-body"><div class="o-l3-kicker" id="l3Kicker"></div><div class="o-l3-head" id="l3Head"></div><div class="o-l3-sub" id="l3Sub"></div></div></div>
+    <div class="o-status hidden" id="status"></div>
+  </div>
+
+  <!-- shown when the page is opened without a match: how to use it -->
+  <main id="setup" class="setup hidden">
+    <h1>On-air graphics page</h1>
+    <p>This page draws The Gallery's graphics on a <b>transparent background</b>, so you can lay it over your programme feed in OBS, vMix, Wirecast or a CasparCG HTML template.</p>
+    <ol>
+      <li>Open the console, go to <b>On screen → Use in your graphics system</b> and copy the link. It already contains your match.</li>
+      <li>In your switcher, add a <b>Browser source</b> (OBS) or <b>Web Browser input</b> (vMix), paste the link and set the size to <b>1920 × 1080</b>.</li>
+      <li>Approve stories in the console. Each one appears here as a lower third; player tags for fast shots and long passes appear on their own.</li>
+    </ol>
+    <p class="muted">Options you can add to the link: <code>&amp;bug=0</code> hides the score bug · <code>&amp;bg=green</code> gives a green-screen background · <code>&amp;bg=preview</code> shows a dark background for checking the look.</p>
+    <p><a href="/">Open the console</a></p>
+  </main>
+  <script src="/static/overlay.js"></script>
+</body>
+</html>

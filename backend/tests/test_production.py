@@ -110,3 +110,28 @@ def test_unhandled_errors_hide_internals(monkeypatch):
     assert r.status_code == 500
     body = r.json()
     assert "secret" not in r.text and "request_id" in body
+
+
+def test_overlay_page_and_house_rules(client):
+    import re
+    page = client.get("/overlay")
+    assert page.status_code == 200 and "On-air graphics" in page.text
+    for tag in re.findall(r"<script[^>]*>", page.text):
+        assert "src=" in tag, tag
+    rules = client.get("/api/policy").json()
+    assert "exhausted" in rules["blocked_states"] and "betting" in rules["needs_producer_policy"]
+    assert "dominate" in rules["needs_producer_wording"] and "dominat" not in rules["needs_producer_wording"]
+    assert set(rules["rights"]) >= {"world", "br", "za"}
+
+
+def test_graphics_systems_can_pass_the_session_in_the_link(client, monkeypatch):
+    """OBS/vMix browser sources can't set headers, so GET accepts ?s=<session> in public mode."""
+    monkeypatch.setattr(app_mod, "PUBLIC_DEMO", True)
+    monkeypatch.setattr(app_mod, "runtimes", {})
+    mid = client.post("/api/matches", json={"mode": "fixture", "fixture": "A"},
+                      headers={"X-Gallery-Session": "studio-1"}).json()["match_id"]
+    feed = client.get(f"/api/matches/{mid}/overlays?market=world&s=studio-1")
+    assert feed.status_code == 200 and "now_clock" in feed.json()
+    assert client.get(f"/api/matches/{mid}/overlays?s=someone-else").status_code == 404
+    # writes still need the header
+    assert client.post(f"/api/matches/{mid}/replay?s=studio-1", json={"speed": 10}).status_code == 404

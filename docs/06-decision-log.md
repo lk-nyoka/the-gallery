@@ -62,6 +62,9 @@ Record every decision that changes scope, design or pitch. Newest at the bottom.
 | D50 | 13 Oct | **Observability without a paid service**: JSON logs, request ids, `/api/metrics`, liveness/readiness probes; Azure Application Insights optional | Free tier; one switch to Azure Monitor later | Mandatory telemetry dependency |
 | D51 | 13 Oct | **Pinned lock file + pip-audit + Docker smoke test in CI**, non-root image | Reproducible builds; a broken image never reaches Render | Floating versions |
 | D52 | 13 Oct | **Console retries and reconnects**, with a plain banner while a sleeping free instance wakes | Free hosting sleeps; first visitors shouldn't see an error | Paid always-on instance |
+| D53 | 13 Oct | **The console sets itself up per user** (production, league/club, fan) with a first-visit welcome and a guided tour per role | Three very different users; one cluttered screen served none of them well | Separate apps |
+| D54 | 13 Oct | **Fans see only proven sentences**, without producer approval, labelled as such | A fan companion has no producer; safety comes from the verifier, not the button | Auto-approving stories |
+| D55 | 13 Oct | **Transparent browser-source graphics page + `?s=` session in links** | OBS, vMix, Wirecast and CasparCG all take a browser source, and none can set headers; writes still need the header | Native plugins per vendor |
 
 ## Open questions
 
@@ -98,3 +101,4 @@ Record every decision that changes scope, design or pitch. Newest at the bottom.
 | 12 Oct | Docs v2: D11–D22, feedback triage; README, brief, architecture, build plan and demo script updated | Three external critiques reviewed |
 | 12 Oct | Docs v3: D33–D39; README rewritten around the agent newsroom; demo script v3 on synthetic fixtures; real-match references removed from public docs | Official rules (synthetic data) and the 17-step agent plan |
 | 13 Oct | D49–D52: production hardening; docs/09-operations.md and SECURITY.md added | "Make it production ready" |
+| 13 Oct | D53–D55: role-based console, fan mode, graphics outputs and downloads; docs/10-user-guide.md | "Make it easy for the Premier League, fans and production companies" |

@@ -68,6 +68,6 @@ def feed(rt: "MatchRuntime", market: str = "world") -> dict[str, Any]:
         })
     cues.sort(key=lambda c: c["start_t"])
     return {"match_id": rt.match_id, "market": market, "names": rt.names, "score": rt.score(),
-            "now_t": rt.now_t, "cues": cues,
+            "now_t": rt.now_t, "now_clock": rt.now_clock, "cues": cues,
             "thresholds": {"shot_speed_kmh": TAG_SHOT_KMH, "pass_length_m": TAG_PASS_M},
             "note": "Only producer-approved stories become cues; player tags are computed from the events."}

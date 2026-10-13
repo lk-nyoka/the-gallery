@@ -23,7 +23,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import benchmark, espn, filefeed, fixtures, governance, live, llm, overlays, personalise, statsbomb, synth
+from . import benchmark, espn, filefeed, fixtures, governance, live, llm, overlays, personalise, statsbomb, synth, verifier
 from .production import SECURITY_HEADERS, bucket, limiter, log, metrics, new_request_id, settings, setup_azure_monitor
 from .engine import MatchRuntime
 from .events import Event
@@ -174,7 +174,40 @@ def index() -> FileResponse:
     return FileResponse(WEB / "index.html")
 
 
+@app.get("/overlay", include_in_schema=False)
+def overlay_page() -> FileResponse:
+    """Transparent 1920x1080 graphics page for OBS, vMix, Wirecast or CasparCG (browser source)."""
+    return FileResponse(WEB / "overlay.html")
+
+
 app.mount("/static", StaticFiles(directory=WEB), name="static")
+
+
+_STEMS = {"dominat": "dominate", "capitaliz": "capitalise", "capitalis": None, "dismantl": "dismantle",
+          "deserv": "deserve", "overwhelm": "overwhelm", "world class": None, "great ": "great", "poor ": "poor"}
+
+
+def _readable(words: list[str]) -> list[str]:
+    """Matching uses word stems; people read words."""
+    out: list[str] = []
+    for w in words:
+        w = _STEMS.get(w, w.strip()) if w in _STEMS else w.strip()
+        if w and w not in out:
+            out.append(w)
+    return out
+
+
+@app.get("/api/policy")
+def house_rules() -> dict:
+    """The editorial rules every story is checked against, in plain words (for league and club media teams)."""
+    return {
+        "blocked_states": verifier.UNSUPPORTED_STATES,
+        "needs_producer_wording": _readable(verifier.QUALITATIVE),
+        "needs_producer_policy": verifier.POLICY_TERMS,
+        "needs_producer_result": ["wins / won (mid-match)", "victory", "beats", "defeat", "triumph", "clinches",
+                                  "seals the", "three points"],
+        "rights": governance.RIGHTS_POLICY,
+    }
 
 
 def validation_enabled() -> bool:
@@ -235,6 +268,8 @@ async def _edge(request: Request, call_next):
     """Request id, visitor sandbox, body-size and rate limits, security headers, access log and metrics."""
     rid = request.headers.get("x-request-id", "")[:32] or new_request_id()
     sid = request.headers.get("x-gallery-session", "")[:64]
+    if not sid and request.method == "GET":   # graphics systems and browser sources can't set headers: ?s=<session>
+        sid = request.query_params.get("s", "")[:64]
     token = _owner.set(sid if PUBLIC_DEMO and sid else "local")
     t0 = time.perf_counter()
     status = 500

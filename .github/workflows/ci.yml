@@ -4,20 +4,26 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
           cache: pip
       - name: Install
         run: pip install -r requirements.txt -r requirements-dev.txt
       - name: Lint
         run: ruff check backend
-      - name: Unit, adapter and agent tests
+      - name: Unit, agent, API and production tests
         run: pytest -q
       - name: Benchmark smoke test (synthetic data only)
         working-directory: backend
@@ -26,3 +32,34 @@ jobs:
         run: |
           test ! -d backend/data/espn
           test ! -d backend/data/statsbomb
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Audit pinned dependencies for known vulnerabilities
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.lock --strict --desc
+
+  image:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the production image
+        run: docker build -t the-gallery:ci .
+      - name: Start it and check health, readiness and security headers
+        run: |
+          docker run -d --name g -p 8000:8000 the-gallery:ci
+          for i in $(seq 1 30); do curl -fsS localhost:8000/readyz && break; sleep 2; done
+          curl -fsS localhost:8000/healthz
+          curl -fsSI localhost:8000/ | tee headers.txt
+          grep -qi "content-security-policy" headers.txt
+          grep -qi "x-content-type-options: nosniff" headers.txt
+          curl -fsS -X POST localhost:8000/api/matches/default -H "X-Gallery-Session: ci" | grep -q match_id
+          docker logs g | tail -5
+          docker inspect --format '{{.Config.User}}' g | grep -q gallery

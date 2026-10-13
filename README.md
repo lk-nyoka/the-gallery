@@ -155,7 +155,7 @@ Momentum detection is tuned for precision over recall: every detection inside a 
 | **Microsoft Foundry Local** | Free, on-device model (`qwen2.5` via `foundry-local-sdk`) in its own process, OpenAI-compatible endpoint |
 | **Model Context Protocol** | `gallery.mcp_server`: read-only tools so Copilot or any MCP agent can use verified stories, provenance and coverage gaps, but never approve or publish |
 | **Azure OpenAI / Microsoft Foundry** | Optional hosted model, same interface (`MODEL_PROVIDER=azure_openai`) |
-| **GitHub Actions** | CI: lint, tests, benchmark smoke test, data-policy check |
+| **GitHub Actions** | CI on Python 3.12 and 3.13: lint, tests, benchmark smoke test, data-policy check, `pip-audit`, Docker image smoke test |
 | Python · FastAPI · SQLite · Pydantic | Engine, API, typed agent contracts |
 | Vanilla JS (no build step) | Producer console |
 
@@ -166,6 +166,17 @@ Models are swappable and never trusted with final factual approval: `MODEL_PROVI
 **[the-gallery-dm6q.onrender.com](https://the-gallery-dm6q.onrender.com)** runs the same code with synthetic data and the template writer. Every visitor gets their own sandbox, so your approvals never show up for anyone else.
 
 **Host your own (free):** the repository includes a `Dockerfile` and a Render blueprint (`render.yaml`). On [render.com](https://render.com), choose **New → Blueprint**, pick this repository and apply. Free instances sleep when idle; set the repository variable `DEMO_URL` and the *Keep demo awake* workflow pings it every 10 minutes. The same image runs on Azure App Service or Azure Container Apps (free tiers) with `PUBLIC_DEMO=1`.
+
+### Production readiness
+
+| | |
+|---|---|
+| Security | Content-Security-Policy and security headers on every response, typed input validation, body-size and per-visitor rate limits, sandboxed visitors, no internals in error messages |
+| Reliability | `/healthz` and `/readyz` probes, graceful shutdown, idle-match eviction, the console retries and reconnects on its own (and says so while a sleeping free instance wakes up) |
+| Observability | JSON logs with a request id on every response and error, `/api/metrics` (latency percentiles, error and rate-limit counts), optional Azure Application Insights |
+| Supply chain | Exact versions in `requirements.lock`, `pip-audit` and a Docker smoke test in CI, Dependabot, non-root container |
+
+Configuration, deployment, monitoring and the incident runbook: [`docs/09-operations.md`](docs/09-operations.md). Reporting a vulnerability: [`SECURITY.md`](SECURITY.md).
 
 ## Run it
 
@@ -210,7 +221,7 @@ Tools: `list_matches`, `get_match_state`, `get_verified_storylines`, `get_storyl
 ```bash
 pip install -r requirements-dev.txt
 ruff check backend
-pytest -q                          # 59 tests: detectors, verifier, every agent, the workflow, personalisation, MCP
+pytest -q                          # 69 tests: detectors, verifier, every agent, the workflow, personalisation, MCP, production hardening
 cd backend && python -m gallery.benchmark --quick
 ```
 
@@ -252,6 +263,7 @@ cd backend && python -m gallery.benchmark --quick
 | [`06-decision-log.md`](docs/06-decision-log.md) | Decisions and trade-offs |
 | [`07-test-guide.md`](docs/07-test-guide.md) | How to test each feature |
 | [`08-differentiation.md`](docs/08-differentiation.md) | How this differs from existing tools |
+| [`09-operations.md`](docs/09-operations.md) | Configuration, deploy, monitoring, limits, incident runbook |
 
 ## Team
 

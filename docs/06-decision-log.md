@@ -58,6 +58,10 @@ Record every decision that changes scope, design or pitch. Newest at the bottom.
 | D46 | 13 Oct | **Pass quality and ball speed** as verifier metrics; synthetic speeds seeded per event id so existing fixtures don't change | Challenge feature list (pass quality, speed metrics); reproducible benchmark | Re-generating fixtures |
 | D47 | 13 Oct | **Editorial policy words** (inflammatory, speculative, betting) need a producer | League-operated surfaces need house style, not just facts | Hard blocking (a producer may quote them in context) |
 | D48 | 13 Oct | **Public demo on a free host** (Docker + Render blueprint), one sandbox per visitor, real-match sources forced off | Judges need a link that always works; visitors must not see each other's decisions | Shared single state; paid hosting |
+| D49 | 13 Oct | **Production hardening** in one module (`production.py`): security headers and CSP, typed validation with ranges, body-size and per-visitor rate limits, generic 500s with request ids | A public link will be poked at; judges may open dev tools | A gateway or WAF (paid) |
+| D50 | 13 Oct | **Observability without a paid service**: JSON logs, request ids, `/api/metrics`, liveness/readiness probes; Azure Application Insights optional | Free tier; one switch to Azure Monitor later | Mandatory telemetry dependency |
+| D51 | 13 Oct | **Pinned lock file + pip-audit + Docker smoke test in CI**, non-root image | Reproducible builds; a broken image never reaches Render | Floating versions |
+| D52 | 13 Oct | **Console retries and reconnects**, with a plain banner while a sleeping free instance wakes | Free hosting sleeps; first visitors shouldn't see an error | Paid always-on instance |
 
 ## Open questions
 
@@ -93,3 +97,4 @@ Record every decision that changes scope, design or pitch. Newest at the bottom.
 | 12 Oct | Docs v1 created | Concept locked |
 | 12 Oct | Docs v2: D11–D22, feedback triage; README, brief, architecture, build plan and demo script updated | Three external critiques reviewed |
 | 12 Oct | Docs v3: D33–D39; README rewritten around the agent newsroom; demo script v3 on synthetic fixtures; real-match references removed from public docs | Official rules (synthetic data) and the 17-step agent plan |
+| 13 Oct | D49–D52: production hardening; docs/09-operations.md and SECURITY.md added | "Make it production ready" |

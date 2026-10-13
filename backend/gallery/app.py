@@ -15,12 +15,16 @@ import os
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import benchmark, espn, filefeed, fixtures, governance, live, llm, overlays, personalise, statsbomb, synth
+from .production import SECURITY_HEADERS, bucket, limiter, log, metrics, new_request_id, settings, setup_azure_monitor
 from .engine import MatchRuntime
 from .events import Event
 from .store import Store
@@ -45,11 +49,31 @@ _load_env()
 
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
+    setup_azure_monitor()
     llm.provider()        # start the model provider early so Foundry Local can download/load while the console opens
-    yield
+    janitor = asyncio.create_task(_evict_idle_loop())
+    log.info("started", extra={"path": f"public_demo={settings.public_demo} version={settings.version}"})
+    try:
+        yield
+    finally:          # graceful shutdown: stop replays and live follows, close the database
+        janitor.cancel()
+        for rt in list(runtimes.values()):
+            for task in (getattr(rt, "replay_task", None), getattr(rt, "live_task", None)):
+                if task and not task.done():
+                    task.cancel()
+        try:
+            store.conn.close()
+        except Exception:
+            pass
+        log.info("stopped")
 
 
-app = FastAPI(title="The Gallery", version="0.2.0", lifespan=_lifespan)
+app = FastAPI(title="The Gallery", version=settings.version, lifespan=_lifespan,
+              docs_url="/docs" if settings.api_docs else None, redoc_url=None,
+              openapi_url="/openapi.json" if settings.api_docs else None)
+app.add_middleware(GZipMiddleware, minimum_size=1024)
+if settings.public_demo and (DATA / "gallery.db").exists():
+    (DATA / "gallery.db").unlink()      # the public demo keeps no state between restarts
 store = Store(str(DATA / "gallery.db"))
 runtimes: dict[str, MatchRuntime] = {}
 replay_events: dict[str, list[Event]] = {}
@@ -68,61 +92,64 @@ ZONES = {  # live logger: approximate coordinates in the acting team's attacking
 
 
 # --------------------------------------------------------------------------- models
+Short = Field(default=None, max_length=60)
+
+
 class MarketOverride(BaseModel):
-    focus_players: Optional[list[str]] = None
-    focus_teams: Optional[list[str]] = None
+    focus_players: Optional[list[str]] = Field(default=None, max_length=20)
+    focus_teams: Optional[list[str]] = Field(default=None, max_length=2)
 
 
 class NewMatch(BaseModel):
-    mode: str = "fixture"                # fixture | file | replay | live | (validation: espn | real)
-    fixture: str = "A"                   # fixture mode: A turning point · B correction · C coverage stress
-    file: Optional[str] = None           # file mode: name in backend/data/organiser/
-    match_key: Optional[str] = None      # file mode: which match, if the file has several
-    espn_id: str = ""                    # validation only: ESPN event id
-    league: str = "eng.1"
-    sb_match_id: int = 0                 # validation only: StatsBomb Open Data match id
-    home: Optional[str] = None
-    away: Optional[str] = None
-    seed: int = 7
+    mode: str = Field(default="fixture", pattern="^(fixture|file|replay|live|espn|real)$")
+    fixture: str = Field(default="A", max_length=2)  # A turning point · B correction · C coverage stress
+    file: Optional[str] = Field(default=None, max_length=120)      # name in backend/data/organiser/
+    match_key: Optional[str] = Field(default=None, max_length=120)
+    espn_id: str = Field(default="", max_length=20)                 # validation only
+    league: str = Field(default="eng.1", max_length=30)
+    sb_match_id: int = Field(default=0, ge=0)                       # validation only
+    home: Optional[str] = Field(default=None, max_length=40)
+    away: Optional[str] = Field(default=None, max_length=40)
+    seed: int = Field(default=7, ge=0, le=1_000_000)
     markets: Optional[dict[str, MarketOverride]] = None
-    official_home: Optional[int] = None   # live mode: the real final score, checked at full time
-    official_away: Optional[int] = None
-    date: Optional[str] = None
+    official_home: Optional[int] = Field(default=None, ge=0, le=50)  # live mode: final score, checked at full time
+    official_away: Optional[int] = Field(default=None, ge=0, le=50)
+    date: Optional[str] = Field(default=None, max_length=20)
 
 
 class ReplayReq(BaseModel):
-    speed: float = 20.0
-    start_minute: float = 0.0
+    speed: float = Field(default=20.0, gt=0, le=3000)
+    start_minute: float = Field(default=0.0, ge=0, le=130)
 
 
 class LiveEvent(BaseModel):
-    team: str                            # HOME | AWAY
-    type: str
-    t: float
-    period: int = 1
-    outcome: Optional[str] = None
-    player: Optional[str] = None
-    zone: Optional[str] = None
+    team: str = Field(pattern="^(HOME|AWAY)$")
+    type: str = Field(max_length=20)
+    t: float = Field(ge=0, le=4 * 3600)
+    period: int = Field(default=1, ge=1, le=5)
+    outcome: Optional[str] = Field(default=None, max_length=20)
+    player: Optional[str] = Short
+    zone: Optional[str] = Field(default=None, max_length=20)
 
 
 class Decision(BaseModel):
-    action: str
+    action: str = Field(pattern="^(approve|reject|edit)$")
     edits: Optional[dict] = None
-    acknowledged: Optional[list[int]] = None
+    acknowledged: Optional[list[int]] = Field(default=None, max_length=50)
 
 
 class Inject(BaseModel):
-    kind: Optional[str] = None
+    kind: Optional[str] = Field(default=None, max_length=40)
 
 
 class MarketReq(BaseModel):
-    market: str
-    phase: str = "live"
+    market: str = Field(max_length=20)
+    phase: str = Field(default="live", max_length=20)
 
 
 class PackageReq(BaseModel):
-    kind: str = "half_time"
-    market: str = "world"
+    kind: str = Field(default="half_time", pattern="^(half_time|full_time)$")
+    market: str = Field(default="world", max_length=20)
 
 
 # --------------------------------------------------------------------------- helpers
@@ -130,6 +157,7 @@ def rt_or_404(match_id: str) -> MatchRuntime:
     rt = runtimes.get(match_id)
     if not rt or not _mine(rt):
         raise HTTPException(404, f"match {match_id} not found")
+    _touched[match_id] = time.time()
     return rt
 
 
@@ -163,23 +191,116 @@ def health() -> dict:
             "matches": len(runtimes), "validation_sources": validation_enabled(), "public_demo": PUBLIC_DEMO}
 
 
+@app.get("/healthz", include_in_schema=False)
+def healthz() -> dict:
+    """Liveness: the process is up."""
+    return {"ok": True}
+
+
+@app.get("/readyz", include_in_schema=False)
+def readyz() -> JSONResponse:
+    """Readiness: the database answers and the console files are present."""
+    try:
+        store.query("SELECT 1 AS ok")
+        ok = (WEB / "index.html").exists()
+    except Exception:
+        ok = False
+    return JSONResponse({"ready": ok}, status_code=200 if ok else 503)
+
+
+@app.get("/api/metrics")
+def service_metrics() -> dict:
+    """Operational counters for this instance (no personal data)."""
+    p = llm.provider()
+    return {**metrics.snapshot(), "version": settings.version, "commit": settings.commit,
+            "matches_active": len(runtimes), "public_demo": PUBLIC_DEMO,
+            "model": {"provider": p.describe()["provider"], "calls": p.calls, "failures": p.failures}}
+
+
 # ------------------------------------------------------------------ public demo: one sandbox per visitor
-PUBLIC_DEMO = os.getenv("PUBLIC_DEMO", "").strip().lower() in ("1", "true", "yes", "on")
-MAX_PER_VISITOR, MAX_MATCHES = 3, 40
+PUBLIC_DEMO = settings.public_demo
+MAX_PER_VISITOR, MAX_MATCHES = settings.max_per_visitor, settings.max_matches
 _owner: ContextVar[str] = ContextVar("owner", default="local")
 _created: dict[str, float] = {}
+_touched: dict[str, float] = {}
+
+
+def _client_ip(request: Request) -> str:
+    fwd = request.headers.get("x-forwarded-for", "")
+    return (fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "?"))[:64]
 
 
 @app.middleware("http")
-async def _visitor(request, call_next):
-    """In public mode every browser gets its own matches (X-Gallery-Session), so visitors never see each
-    other's approvals. Locally everything belongs to one owner."""
-    sid = request.headers.get("x-gallery-session", "")
-    token = _owner.set(sid[:64] if PUBLIC_DEMO and sid else "local")
+async def _edge(request: Request, call_next):
+    """Request id, visitor sandbox, body-size and rate limits, security headers, access log and metrics."""
+    rid = request.headers.get("x-request-id", "")[:32] or new_request_id()
+    sid = request.headers.get("x-gallery-session", "")[:64]
+    token = _owner.set(sid if PUBLIC_DEMO and sid else "local")
+    t0 = time.perf_counter()
+    status = 500
     try:
-        return await call_next(request)
+        cl = request.headers.get("content-length")
+        if cl and cl.isdigit() and int(cl) > settings.max_body_bytes:
+            response = JSONResponse({"detail": "Request body too large.", "request_id": rid}, status_code=413)
+        else:
+            b = bucket(request.method, request.url.path)
+            ok, retry = (True, 0)
+            if b and PUBLIC_DEMO:
+                ok, retry = limiter.allow(f"{b[0]}:{_client_ip(request)}:{sid}", b[1])
+            if not ok:
+                metrics.rate_limited += 1
+                response = JSONResponse({"detail": "Too many requests. Try again in a moment.", "request_id": rid},
+                                        status_code=429, headers={"Retry-After": str(retry)})
+            else:
+                response = await call_next(request)
+        status = response.status_code
+        for k, v in SECURITY_HEADERS.items():
+            response.headers.setdefault(k, v)
+        if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https":
+            response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        if request.url.path.startswith("/api/"):
+            response.headers.setdefault("Cache-Control", "no-store")
+        response.headers["X-Request-Id"] = rid
+        return response
     finally:
+        ms = (time.perf_counter() - t0) * 1000
+        metrics.observe(status, ms)
+        if request.url.path.startswith(("/api/", "/healthz", "/readyz")) and request.url.path not in ("/healthz",):
+            quiet = request.method == "GET" and status < 400   # polling is noisy; keep errors and writes at INFO
+            log.log(10 if quiet else 20, "request", extra={"request_id": rid, "method": request.method, "path": request.url.path,
+                                       "status": status, "ms": round(ms, 1), "visitor": (sid or "-")[:8]})
         _owner.reset(token)
+
+
+@app.exception_handler(StarletteHTTPException)
+async def _http_error(request: Request, exc: StarletteHTTPException):
+    return JSONResponse({"detail": exc.detail}, status_code=exc.status_code, headers=getattr(exc, "headers", None))
+
+
+@app.exception_handler(RequestValidationError)
+async def _bad_request(request: Request, exc: RequestValidationError):
+    problems = [f"{'.'.join(str(x) for x in e.get('loc', [])[1:])}: {e.get('msg')}" for e in exc.errors()][:5]
+    return JSONResponse({"detail": "Invalid request: " + "; ".join(problems)}, status_code=422)
+
+
+@app.exception_handler(Exception)
+async def _crash(request: Request, exc: Exception):
+    rid = new_request_id()
+    log.exception("unhandled error", extra={"request_id": rid, "path": request.url.path})
+    return JSONResponse({"detail": "Something went wrong on our side. It has been logged.", "request_id": rid},
+                        status_code=500)
+
+
+async def _evict_idle_loop() -> None:
+    """Free memory: drop matches nobody has touched for MATCH_IDLE_MINUTES (public demo only)."""
+    while True:
+        await asyncio.sleep(300)
+        if not PUBLIC_DEMO:
+            continue
+        cutoff = time.time() - settings.idle_minutes * 60
+        for mid in [m for m, t in list(_touched.items()) if t < cutoff]:
+            _drop(mid)
+            metrics.matches_evicted += 1
 
 
 def _drop(mid: str) -> None:
@@ -187,6 +308,7 @@ def _drop(mid: str) -> None:
     replay_events.pop(mid, None)
     replay_corrections.pop(mid, None)
     _created.pop(mid, None)
+    _touched.pop(mid, None)
     if rt:
         for task in (getattr(rt, "replay_task", None), getattr(rt, "live_task", None)):
             if task and not task.done():
@@ -212,7 +334,8 @@ async def create_match(req: NewMatch) -> dict:
     snap = await _create_match(req)
     mid = snap["match_id"]
     runtimes[mid].owner = _owner.get()
-    _created[mid] = time.time()
+    _created[mid] = _touched[mid] = time.time()
+    metrics.matches_created += 1
     if PUBLIC_DEMO:
         mine = sorted((m for m, r in runtimes.items() if getattr(r, "owner", "") == _owner.get()),
                       key=lambda m: _created.get(m, 0))
@@ -358,7 +481,7 @@ def storyline_trace(sid: str) -> list[dict]:
 
 
 class RedTeam(BaseModel):
-    count: int = 1
+    count: int = Field(default=1, ge=0, le=10)
 
 
 @app.post("/api/matches/{match_id}/red-team")
@@ -372,7 +495,7 @@ def red_team(match_id: str, req: RedTeam) -> dict:
 
 
 class DeskReq(BaseModel):
-    phase: str = "full_time"
+    phase: str = Field(default="full_time", pattern="^(half_time|full_time)$")
 
 
 @app.post("/api/matches/{match_id}/desk")
@@ -533,10 +656,10 @@ def inject(sid: str, req: Inject) -> dict:
 
 
 class ViewerReq(BaseModel):
-    base_market: str = "world"         # language / market the viewer starts from
-    mode: str = "casual"               # casual | analyst
-    club: Optional[str] = None         # HOME | AWAY
-    player: Optional[str] = None       # player-focus mode
+    base_market: str = Field(default="world", max_length=20)   # language / market the viewer starts from
+    mode: str = Field(default="casual", pattern="^(casual|analyst)$")
+    club: Optional[str] = Field(default=None, pattern="^(HOME|AWAY)$")
+    player: Optional[str] = Short                               # player-focus mode
 
 
 @app.post("/api/matches/{match_id}/viewer")
@@ -618,6 +741,9 @@ async def get_benchmark(refresh: bool = False) -> JSONResponse:
 async def ws(websocket: WebSocket, match_id: str) -> None:
     rt = runtimes.get(match_id)
     await websocket.accept()
+    sid = websocket.query_params.get("s", "")[:64]
+    if rt and PUBLIC_DEMO and getattr(rt, "owner", "local") != sid:
+        rt = None                        # another visitor's sandbox
     if not rt:
         await websocket.send_text(json.dumps({"type": "error", "message": "match not found"}))
         await websocket.close()

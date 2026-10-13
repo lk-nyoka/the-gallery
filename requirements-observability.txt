@@ -1,0 +1,2 @@
+# Optional: Azure Application Insights (set APPLICATIONINSIGHTS_CONNECTION_STRING)
+azure-monitor-opentelemetry

@@ -30,10 +30,30 @@
     if (!id) { id = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)); try { localStorage.setItem("gallery.session", id); } catch (_) {} }
     return id;
   })();
+  // ---- connection status banner (free hosting sleeps when idle; networks drop)
+  function banner(text, tone = "") {
+    const b = $("netBanner"); if (!b) return;
+    if (!text) { b.classList.add("hidden"); return; }
+    b.textContent = text; b.className = "netbanner " + tone;
+  }
   async function api(path, opts = {}) {
-    const r = await fetch(path, { headers: { "Content-Type": "application/json", "X-Gallery-Session": SESSION }, ...opts, body: opts.body ? JSON.stringify(opts.body) : undefined });
-    if (!r.ok) { let msg = r.statusText; try { msg = (await r.json()).detail || msg; } catch (_) {} throw new Error(msg); }
-    return r.json();
+    const isGet = !opts.method || opts.method === "GET";
+    for (let attempt = 0; ; attempt++) {
+      let r;
+      try {
+        r = await fetch(path, { headers: { "Content-Type": "application/json", "X-Gallery-Session": SESSION }, ...opts, body: opts.body ? JSON.stringify(opts.body) : undefined });
+      } catch (_) {
+        if (isGet && attempt < 3) { banner("Can't reach the server. Retrying…", "warn"); await new Promise((res) => setTimeout(res, 1000 * 2 ** attempt)); continue; }
+        banner("The server isn't answering. Check your connection; the page retries on its own.", "bad");
+        throw new Error("Can't reach the server right now.");
+      }
+      if (r.status === 502 || r.status === 503) {
+        if (attempt < 8) { banner("Waking up the demo. Free hosting sleeps when nobody is using it; this takes up to a minute…", "warn"); await new Promise((res) => setTimeout(res, 4000)); continue; }
+      }
+      if ($("netBanner") && !$("netBanner").classList.contains("hidden") && r.ok) banner("");
+      if (!r.ok) { let msg = r.statusText; try { msg = (await r.json()).detail || msg; } catch (_) {} throw new Error(msg); }
+      return r.json();
+    }
   }
   function toast(msg, bad = false) {
     const t = $("toast"); t.textContent = msg; t.className = "toast" + (bad ? " bad" : "");
@@ -64,14 +84,25 @@
     Object.assign(S, { matchId: id, events: [], insights: {}, storylines: {}, rankings: {}, selected: null, whyNot: {}, viewer: null, playerCard: null });
     if (S.market === "viewer") { S.market = "world"; $("audienceSel").value = "world"; setAudienceHelp(); }
     const proto = location.protocol === "https:" ? "wss" : "ws";
-    const ws = new WebSocket(`${proto}://${location.host}/ws/${id}`);
+    const ws = new WebSocket(`${proto}://${location.host}/ws/${id}?s=${encodeURIComponent(SESSION)}`);
     S.ws = ws;
     ws.onmessage = (m) => onMessage(JSON.parse(m.data));
-    ws.onclose = () => setTimeout(() => S.matchId === id && connect(id), 1500);
+    ws.onopen = () => { S.wsTries = 0; if (S.wsDown) { S.wsDown = false; banner(""); } };
+    ws.onclose = () => {
+      if (S.matchId !== id) return;
+      S.wsTries = (S.wsTries || 0) + 1; S.wsDown = true;
+      const wait = Math.min(15000, 1000 * 2 ** Math.min(S.wsTries, 4));
+      if (S.wsTries > 1) banner("Live connection lost. Reconnecting…", "warn");
+      setTimeout(() => S.matchId === id && connect(id), wait);
+    };
   }
 
   function onMessage(msg) {
     switch (msg.type) {
+      case "error":            // the match is gone (server restarted, or cleaned up after being idle)
+        S.matchId = null; banner("That match was cleared. Opening a fresh one…", "warn");
+        loadMatches().then(() => banner("")).catch(() => {});
+        return;
       case "snapshot": {
         const s = msg.snapshot; S.snap = s;
         S.events = s.events; S.insights = Object.fromEntries(s.insights.map((i) => [i.insight_id, i]));

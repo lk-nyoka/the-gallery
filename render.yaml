@@ -4,10 +4,12 @@ services:
     name: the-gallery
     runtime: docker
     plan: free
-    healthCheckPath: /api/health
+    healthCheckPath: /readyz
     autoDeploy: true
     envVars:
       - key: PUBLIC_DEMO
         value: "1"
       - key: MODEL_PROVIDER
         value: template
+      - key: LOG_JSON
+        value: "1"

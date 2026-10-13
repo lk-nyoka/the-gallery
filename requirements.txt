@@ -1,5 +1,5 @@
 # Runtime dependencies (ranges tested in CI). Exact versions for the container: requirements.lock
-fastapi>=0.141,<1.0
+fastapi>=0.143.0,<1.0
 uvicorn[standard]>=0.53,<1.0
 httpx>=0.28,<0.29
 pydantic>=2.13,<3

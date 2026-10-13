@@ -1,6 +1,6 @@
 # Runtime dependencies (ranges tested in CI). Exact versions for the container: requirements.lock
 fastapi>=0.141,<1.0
-uvicorn[standard]>=0.53,<1.0
+uvicorn[standard]>=0.54.0,<1.0
 httpx>=0.28,<0.29
 pydantic>=2.13,<3
 agent-framework-core>=1.21,<2

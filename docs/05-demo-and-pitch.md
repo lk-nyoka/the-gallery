@@ -18,12 +18,12 @@ Large on-screen captions throughout: judges may watch muted.
 
 | Time | Screen | Voice-over / caption |
 |---|---|---|
-| 0:00–0:12 | Fixture C, Gallery tab. Press **Red-team next 2**, then ▶ Play at 60×. A story card arrives; Inspector → Agent trace shows **Verifier: blocked (v1)** · *"…looks exhausted…" → unsupported state* | "This AI newsroom just wrote a sentence the data can't support. It never reached the producer." |
+| 0:00–0:12 | Fixture C, Live desk. Press **Test tools → Plant 2 false sentences**, then ▶ Play at 60×. A story card arrives; Story details → How the agents made it shows **Verifier: blocked (v1)** · *"…looks exhausted…" → unsupported state* | "This AI newsroom just wrote a sentence the data can't support. It never reached the producer." |
 | 0:12–0:30 | Same trace: **Writer: sent back for revision (1/2)** → **Verifier: verified (v2)** → **Producer: awaiting decision**. Hover a sentence: SQL + event rows | "Agents write. Code checks. Every sentence carries a claim that's re-computed from the match data. No evidence, no airtime." |
 | 0:30–0:50 | **Newsroom** tab: the workflow diagram and the live trace (Editor-in-Chief commissions and holds, Analyst tool calls) | "Built on Microsoft Agent Framework: an Editor-in-Chief commissions, an Analyst gathers evidence with read-only tools, a Writer drafts, and a deterministic Verifier is the only one allowed to say what's true." |
 | 0:50–1:10 | Fixture A at 60×: turning-point story *"The red card that turned the match"*; **Why not?** panel | "It finds the moment that mattered, ranks it with a visible formula, and explains why other stories lost." |
 | 1:10–1:35 | Fixture B at 20×: approve the 29' goal story → feed re-credits the goal → card turns red → **Review the correction** → approve | "Facts change. When the feed re-credits a goal, the approved story is pulled, the Corrections agent drafts a fixed version, and the producer re-approves. Both versions stay in the audit." |
-| 1:35–1:45 | Readiness bar at 100%; **For you…** → Casual fan following one player, then Analyst | "The same verified stories, shaped for a casual fan or an analyst, a favourite club or one player." |
+| 1:35–1:45 | Readiness bar at 100%; **Show stories for → A single fan…** → Casual fan following one player, then Analyst | "The same verified stories, shaped for a casual fan or an analyst, a favourite club or one player." |
 | 1:45–1:55 | **Trust** tab: 0 escapes of 361, 37/37 stopped, 12/12 covered | "Measured, not claimed. The Gallery: no evidence, no airtime." |
 
 Only show numbers from your own benchmark run on the recording day.

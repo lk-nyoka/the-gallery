@@ -6,158 +6,231 @@
   <title>The Gallery</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
+  <!-- ============================================================ header -->
   <header class="topbar">
     <div class="brand">
-      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="tally-lamp" aria-hidden="true"></span>
       <div>
         <div class="brand-name">The Gallery</div>
         <div class="brand-tag">No evidence, no airtime.</div>
       </div>
     </div>
 
-    <div class="scoreboard" id="scoreboard">
-      <span class="team" id="homeName">—</span>
+    <div class="scorebug" id="scoreboard" aria-label="Score">
+      <span class="team home" id="homeName">Home</span>
       <span class="score" id="score">0 – 0</span>
-      <span class="team" id="awayName">—</span>
-      <span class="clock" id="clock">00:00</span>
-      <span class="period" id="period"></span>
+      <span class="team away" id="awayName">Away</span>
+      <span class="clock"><span id="clock">00:00</span> <span id="period" class="period"></span></span>
       <span class="result hidden" id="resultCheck"></span>
       <span class="livebadge hidden" id="liveBadge"></span>
     </div>
 
-    <div class="controls">
-      <div class="seg" id="marketSeg" role="tablist" aria-label="Market">
-        <button data-market="world" class="on">World · EN</button>
-        <button data-market="br">Brazil · PT</button>
-        <button data-market="za">SA · isiZulu</button>
-        <button data-market="viewer" id="viewerBtn" title="Personalise: casual fan or analyst, favourite club, player focus">For you…</button>
-      </div>
-      <span class="badge" id="writerBadge" title="Which model writes the words. Verification is the same either way.">model: template</span>
+    <div class="top-right">
+      <span class="badge" id="writerBadge" title="Which model writes the words. The checking is the same either way.">Writer: templates</span>
+      <button class="btn help" id="helpBtn" aria-controls="help">How it works</button>
     </div>
   </header>
 
-  <nav class="subbar">
-    <div class="tabs" role="tablist">
-      <button class="tab on" data-tab="gallery">Gallery</button>
-      <button class="tab" data-tab="newsroom">Newsroom <span class="tabcount" id="traceCount"></span></button>
-      <button class="tab" data-tab="trust">Trust &amp; performance</button>
-      <button class="tab" data-tab="audit">Audit log</button>
-    </div>
-    <div class="matchbar" id="matchbar">
-      <select id="matchSelect" aria-label="Match"></select>
-      <button class="btn accent" id="findMatch">Find a match</button>
-      <select id="moreSources" aria-label="Other sources">
-        <option value="">More sources…</option>
-        <option value="fixture:A">Fixture A · turning point (red card 63')</option>
-        <option value="fixture:B">Fixture B · data correction</option>
-        <option value="fixture:C">Fixture C · coverage stress + red-team</option>
-        <option value="file">Organiser data file…</option>
-        <option value="archive">Full-detail archive (StatsBomb 2015/16)</option>
-        <option value="synthetic">Random synthetic match</option>
-        <option value="logger">Log a match by hand</option>
-      </select>
-      <span class="divider"></span>
-      <span id="replayControls" class="inline">
-        <button class="btn" id="playBtn">▶ Play</button>
-        <select id="speedSel" aria-label="Replay speed">
-          <option value="5">5×</option><option value="20" selected>20×</option>
-          <option value="60">60×</option><option value="300">300×</option>
+  <!-- ============================================================ pipeline: the product in one line -->
+  <ol class="pipe" id="pipe" aria-label="How a story gets to air">
+    <li data-step="feed"><b>Match events</b><span id="pipeFeed">waiting for kick-off</span></li>
+    <li data-step="agents"><b>Agents draft stories</b><span id="pipeAgents">nothing yet</span></li>
+    <li data-step="check"><b>Code checks every fact</b><span id="pipeCheck">nothing to check</span></li>
+    <li data-step="approve"><b>You approve</b><span id="pipeApprove">nothing waiting</span></li>
+    <li data-step="package"><b>Package goes out</b><span id="pipePackage">half-time and full-time</span></li>
+  </ol>
+
+  <!-- ============================================================ controls, grouped and captioned -->
+  <nav class="controlbar" aria-label="Controls">
+    <div class="ctl">
+      <label for="matchSelect">Match</label>
+      <div class="row">
+        <select id="matchSelect"></select>
+        <select id="moreSources" aria-label="Load another match">
+          <option value="">Load another…</option>
+          <option value="fixture:A">Fixture A: a red card turns the match</option>
+          <option value="fixture:B">Fixture B: a goal is re-credited (data correction)</option>
+          <option value="fixture:C">Fixture C: busy match, AI is tested with false sentences</option>
+          <option value="file">Organiser data file…</option>
+          <option value="synthetic">Random synthetic match</option>
+          <option value="logger">Log a match by hand…</option>
+          <option value="archive">Archive match (validation only)</option>
         </select>
-      </span>
-      <span id="liveControls" class="inline hidden">
+      </div>
+      <small>Synthetic matches with fictional clubs. Each fixture tests one thing.</small>
+    </div>
+
+    <div class="ctl" id="replayControls">
+      <label for="speedSel">Replay</label>
+      <div class="row">
+        <button class="btn primary" id="playBtn">▶ Play</button>
+        <select id="speedSel" aria-label="Replay speed">
+          <option value="5">5× speed</option><option value="20" selected>20× speed</option>
+          <option value="60">60× speed</option><option value="300">300× speed</option>
+        </select>
+      </div>
+      <small>Plays the match event by event, as if it were live.</small>
+    </div>
+
+    <div class="ctl hidden" id="liveControls">
+      <label>Live clock</label>
+      <div class="row">
         <button class="btn" id="kickoffBtn">Kick-off</button>
         <button class="btn ghost" id="pauseClockBtn">Pause clock</button>
         <button class="btn ghost" id="secondHalfBtn">2nd half</button>
         <button class="btn ghost" id="fullTimeBtn">Full time</button>
         <input id="setClock" class="clock-input" placeholder="mm:ss" aria-label="Set clock">
         <button class="btn ghost" id="setClockBtn">Set</button>
-      </span>
-      <span class="divider"></span>
-      <button class="btn warn" id="redTeamBtn" title="Test the gate: the next 2 drafts each carry one labelled false sentence. The Verifier must catch it and the Writer must revise.">Red-team next 2</button>
-      <button class="btn accent" id="htBtn">Build half-time package <span id="htCountdown"></span></button>
-      <button class="btn ghost" id="ftBtn">Full-time</button>
+      </div>
+      <small>You log events while you watch; the clock runs here.</small>
     </div>
+
+    <div class="ctl">
+      <label for="audienceSel">Show stories for</label>
+      <div class="row">
+        <select id="audienceSel">
+          <option value="world">Producer, world feed (English)</option>
+          <option value="br">Brazil feed (Portuguese)</option>
+          <option value="za">South Africa feed (isiZulu)</option>
+          <option value="viewer">A single fan…</option>
+        </select>
+      </div>
+      <small id="audienceHelp">Same checked facts; the order and angle change per audience.</small>
+    </div>
+
+    <div class="ctl">
+      <label>Build package</label>
+      <div class="row">
+        <button class="btn" id="htBtn">Half-time <span id="htCountdown"></span></button>
+        <button class="btn" id="ftBtn">Full-time</button>
+      </div>
+      <small>Collects approved stories into a script, graphics and recap.</small>
+    </div>
+
+    <details class="ctl tools" id="toolsMenu">
+      <summary>Test tools</summary>
+      <div class="menu">
+        <button class="menu-item" id="redTeamBtn"><b>Plant 2 false sentences</b><span>The next two AI drafts each get one labelled lie. Watch the checker catch it and the Writer fix it.</span></button>
+        <button class="menu-item hidden" id="findMatch"><b>Find a real match</b><span>Validation only. Not for the demo.</span></button>
+      </div>
+    </details>
   </nav>
 
-  <main id="view-gallery" class="view grid">
+  <!-- ============================================================ tabs -->
+  <div class="tabs" role="tablist">
+    <button class="tab on" data-tab="gallery">Live desk</button>
+    <button class="tab" data-tab="newsroom">How the agents worked <span class="tabcount" id="traceCount"></span></button>
+    <button class="tab" data-tab="trust">Proof it works</button>
+    <button class="tab" data-tab="audit">Decision log</button>
+  </div>
+
+  <!-- ============================================================ live desk -->
+  <main id="view-gallery" class="view desk">
+    <section class="panel band" id="threatPanel">
+      <div class="band-chart">
+        <div class="panel-h"><h2>Who is on top</h2><span class="hint">attacking threat per minute, goals and red cards marked</span></div>
+        <div class="threat-wrap">
+          <svg id="momentum" class="momentum" viewBox="0 0 860 200" aria-label="Attacking threat chart"></svg>
+          <div id="momentumTip" class="chart-tip hidden"></div>
+        </div>
+      </div>
+      <div class="band-text">
+        <p class="threat-now" id="momentumNow">Press Play. The chart fills in as the match happens.</p>
+        <details class="explain">
+          <summary>How to read this chart</summary>
+          <p>Bars above the line are <b class="home-t" id="legHome">home</b> attacking, bars below are <b class="away-t" id="legAway">away</b> attacking. Each minute scores <b>2</b> per shot, <b>1</b> per entry into the penalty box and <b>¼</b> per pass into the final third, summed over three minutes. White dots are goals, red marks are red cards. Hover the chart for any minute.</p>
+        </details>
+      </div>
+    </section>
+    <div class="grid">
     <section class="col left">
       <div class="panel hidden" id="feedPanel">
-        <div class="panel-h"><span id="feedTitle">Data source &amp; limits</span><span class="muted small" id="feedState"></span></div>
+        <div class="panel-h"><h2 id="feedTitle">About this match</h2><span class="hint" id="feedState"></span></div>
         <div class="small" id="feedCaps"></div>
-        <div class="kv small" id="teamStats" style="margin-top:8px"></div>
+        <div class="kv small" id="teamStats"></div>
       </div>
-      <div class="panel">
-        <div class="panel-h"><span>Attacking threat</span><span class="muted small">per minute</span></div>
-        <svg id="momentum" class="momentum" viewBox="0 0 300 120" preserveAspectRatio="none" aria-label="Momentum"></svg>
-        <div class="legend small"><span class="dot home"></span><span id="legHome">Home</span><span class="dot away"></span><span id="legAway">Away</span></div>
-      </div>
-      <div class="panel">
-        <div class="panel-h"><span>Newsroom</span><span class="muted small">agents at work · latest first</span></div>
-        <ol id="miniTrace" class="trace mini"></ol>
-      </div>
+
       <div class="panel grow">
-        <div class="panel-h"><span>Event feed</span><span class="muted small" id="eventCount">0</span></div>
+        <div class="panel-h"><h2>Match events</h2><span class="hint" id="eventCount">0</span></div>
         <ol id="feed" class="feed"></ol>
+      </div>
+
+      <div class="panel">
+        <div class="panel-h"><h2>Agents at work</h2><span class="hint">latest first</span></div>
+        <ol id="miniTrace" class="trace mini"></ol>
       </div>
     </section>
 
     <section class="col centre">
       <div id="readiness" class="readiness"></div>
       <div id="impact" class="impact hidden"></div>
-      <div class="panel-h big">
-        <span>On-air queue</span>
-        <span class="muted small" id="queueNote">Ranked by code: importance · novelty · confidence · graphic readiness · market relevance</span>
+
+      <div class="section-h">
+        <h2>Top stories now</h2>
+        <p id="queueNote">The three strongest checked stories from the last 15 minutes, ranked by code. Click one to review it.</p>
       </div>
       <div id="queue" class="queue"></div>
-      <div class="panel-h"><span>All storylines</span><span class="muted small" id="funnel"></span></div>
+
+      <div class="section-h">
+        <h2>All stories</h2>
+        <p id="funnel"></p>
+      </div>
       <div id="allStories" class="stories"></div>
     </section>
 
     <section class="col right">
       <div id="loggerPanel" class="panel hidden">
-        <div class="panel-h"><span>Live logger</span><span class="muted small">keys: H/A team · 1–9 action</span></div>
+        <div class="panel-h"><h2>Log events</h2><span class="hint">H / A picks the team, 1–9 logs an action</span></div>
         <div class="teampick">
           <button class="teambtn on" data-team="HOME" id="pickHome">Home</button>
           <button class="teambtn" data-team="AWAY" id="pickAway">Away</button>
         </div>
-        <input id="playerInput" class="player-input" list="playerList" placeholder="Player (optional, e.g. Santos)">
+        <input id="playerInput" class="player-input" list="playerList" placeholder="Player (optional)">
         <datalist id="playerList"></datalist>
         <div class="actions" id="actionGrid"></div>
         <ol id="logList" class="loglist"></ol>
       </div>
 
       <div class="panel hidden" id="playerPanel">
-        <div class="panel-h"><span id="playerTitle">Player focus</span><span class="muted small" id="playerTeam"></span></div>
+        <div class="panel-h"><h2 id="playerTitle">Player focus</h2><span class="hint" id="playerTeam"></span></div>
         <div id="playerBody"></div>
       </div>
+
       <div class="panel grow" id="inspector">
-        <div class="panel-h"><span>Inspector</span><span class="muted small" id="inspTitle">select a storyline</span></div>
+        <div class="panel-h"><h2>Story details</h2><span class="hint" id="inspTitle"></span></div>
         <div id="inspBody" class="insp-empty">
-          <p>Pick a storyline to see <b>why it ranked where it did</b>, why other stories didn't make it, and to approve, edit or reject it.</p>
-          <p class="muted">Hover any sentence to see the exact query and event rows behind it.</p>
+          <p class="lead">Pick a story to review it.</p>
+          <ul class="howto">
+            <li><span class="dot ok"></span>Green tick: the checker re-computed every number from the match data.</li>
+            <li><span class="dot warn"></span>Amber: numbers are right, the wording needs your eye.</li>
+            <li><span class="dot bad"></span>Red cross: false or unsupported. It can't go on air.</li>
+          </ul>
+          <p class="muted">Hover any sentence to see the exact data behind it. Approve, edit or reject from here.</p>
         </div>
       </div>
     </section>
+    </div>
   </main>
 
+  <!-- ============================================================ agents -->
   <main id="view-newsroom" class="view hidden">
     <div class="newsroom">
       <div class="panel">
-        <div class="panel-h"><span>How a story gets to air</span><span class="muted small">Microsoft Agent Framework workflow</span></div>
+        <div class="panel-h"><h2>How a story gets to air</h2><span class="hint">a Microsoft Agent Framework workflow</span></div>
         <div class="flow" id="flow"></div>
         <div class="legend-trace small">
-          <span><i class="tl action"></i>agent action</span><span><i class="tl ok"></i>verified / approved</span>
-          <span><i class="tl warn"></i>retry / needs a human</span><span><i class="tl bad"></i>blocked / correction</span>
-          <span><i class="tl held"></i>held by the editor</span>
+          <span><i class="tl action"></i>agent did something</span><span><i class="tl ok"></i>checked or approved</span>
+          <span><i class="tl warn"></i>sent back, or waiting for you</span><span><i class="tl bad"></i>blocked or corrected</span>
+          <span><i class="tl held"></i>not chosen by the editor</span>
         </div>
       </div>
       <div class="panel grow">
-        <div class="panel-h"><span>Agent trace · this match</span>
-          <span class="inline small"><label><input type="checkbox" id="hideHeld"> hide held</label>
+        <div class="panel-h"><h2>Every agent step in this match</h2>
+          <span class="inline small"><label><input type="checkbox" id="hideHeld"> hide stories the editor didn't choose</label>
           <select id="agentFilter" aria-label="Filter by agent"><option value="">All agents</option></select></span></div>
         <ol id="trace" class="trace"></ol>
       </div>
@@ -169,26 +242,75 @@
   </main>
 
   <main id="view-audit" class="view hidden">
-    <div class="panel"><div class="panel-h"><span>Producer decisions</span></div><div id="audit"></div></div>
+    <div class="panel"><div class="panel-h"><h2>Every decision and correction</h2></div><div id="audit"></div></div>
   </main>
+
+  <!-- ============================================================ help -->
+  <aside id="help" class="help-drawer hidden" aria-label="How it works">
+    <div class="help-h">
+      <h2>How The Gallery works</h2>
+      <button class="btn ghost" id="helpClose">Close</button>
+    </div>
+    <div class="help-b">
+      <p class="lead">A live football production desk. AI agents spot the stories in a match and write them up; plain code checks every fact against the match data; you decide what goes on air.</p>
+
+      <h3>Try it in one minute</h3>
+      <ol class="steps">
+        <li>Press <b>▶ Play</b>. Events stream in and the chart shows who is attacking.</li>
+        <li>Stories appear under <b>Top stories now</b>. Click one.</li>
+        <li>Hover a sentence to see the data behind it, then press <b>Approve for air</b>.</li>
+        <li>Press <b>Half-time</b> to build the package for the break.</li>
+      </ol>
+
+      <h3>What each control does</h3>
+      <dl class="glossary">
+        <dt>Match</dt><dd>Which match you are working on. <b>Load another</b> opens a test fixture, the organisers' data file or a match you log by hand.</dd>
+        <dt>Replay</dt><dd>Plays the match event by event, as if it were live. Speed sets how fast match time passes.</dd>
+        <dt>Show stories for</dt><dd>Who the stories are for. Brazil and South Africa get a different lead story and their own language. <b>A single fan</b> lets you pick casual or analyst depth, a favourite club and a player to follow.</dd>
+        <dt>Build package</dt><dd>Gathers every approved story into what a studio needs at the break: script, graphics data, clip times, recap and a social post, plus the rights terms.</dd>
+        <dt>Test tools</dt><dd><b>Plant 2 false sentences</b> makes the AI writer slip a labelled lie into its next two drafts, so you can watch the checker stop it.</dd>
+        <dt>Readiness</dt><dd>One score for "can we go to the break?": enough approved stories, every goal and red card covered, no outstanding corrections.</dd>
+        <dt>Who is on top</dt><dd>Attacking threat per minute for each team, with goals and red cards marked. The sentence under it says what the last ten minutes looked like.</dd>
+      </dl>
+
+      <h3>The marks on a story</h3>
+      <dl class="glossary">
+        <dt><span class="dot ok"></span>Checked</dt><dd>Every number was re-computed from the match data and matched.</dd>
+        <dt><span class="dot warn"></span>Needs your eye</dt><dd>The numbers are right, but a word like "brilliant" or "wins" is a judgement.</dd>
+        <dt><span class="dot bad"></span>Blocked</dt><dd>A wrong number, a claim the data can't support (like "tired"), or no claim at all. Blocked text can never be approved.</dd>
+        <dt>Waiting / Approved</dt><dd>Waiting means checked and ready for you. Approved means you put it on air.</dd>
+        <dt>Corrected</dt><dd>The feed changed a fact after you approved. The old story is pulled and a fixed version waits for you.</dd>
+      </dl>
+
+      <h3>The agents</h3>
+      <dl class="glossary">
+        <dt>Editor-in-Chief</dt><dd>Chooses which detected moments become stories. Goals, red cards and turning points always do.</dd>
+        <dt>Analyst</dt><dd>Gathers the evidence using read-only tools.</dd>
+        <dt>Writer</dt><dd>Writes the story from the evidence only, and rewrites it if the checker rejects it.</dd>
+        <dt>Checker</dt><dd>Not an AI. Code that re-computes every claim. The only part allowed to say what is true.</dd>
+        <dt>Desk, Corrections, Localiser</dt><dd>Fill gaps in coverage, fix stories when the data changes, and adapt stories for other markets.</dd>
+      </dl>
+      <p class="muted small">All clubs, players and matches here are fictional and generated for testing.</p>
+    </div>
+  </aside>
 
   <aside id="pkgDrawer" class="drawer hidden" aria-label="Package">
     <div class="drawer-h">
-      <span id="pkgTitle">Package</span>
-      <span class="muted small" id="pkgMeta"></span>
-      <button class="btn ghost" id="copyPayload">Copy graphics payload</button>
+      <h2 id="pkgTitle">Package</h2>
+      <span class="hint" id="pkgMeta"></span>
+      <button class="btn ghost" id="copyPayload">Copy graphics data</button>
       <button class="btn ghost" id="closePkg">Close</button>
     </div>
     <div id="pkgBody" class="drawer-b"></div>
   </aside>
 
   <div id="hovercard" class="hovercard hidden" role="tooltip"></div>
-  <div id="toast" class="toast hidden"></div>
+  <div id="toast" class="toast hidden" role="status"></div>
 
   <dialog id="findDialog" class="wide">
     <form method="dialog" class="dlg">
-      <h3>Find a match</h3>
-      <p class="muted small">Any finished, live or upcoming match from the ESPN match feed. Finished matches replay event by event and are checked against the official result; live matches are followed automatically.</p>
+      <h3>Find a real match</h3>
+      <p class="muted small">Validation only. Real matches are never stored in the repository or used in the demo.</p>
       <div class="inline">
         <label>Date <input type="date" id="fDate"></label>
         <label>League <select id="fLeague"></select></label>
@@ -210,42 +332,42 @@
 
   <dialog id="realDialog">
     <form method="dialog" class="dlg">
-      <h3>Replay a real match</h3>
-      <p class="muted small">Validation only: event data from StatsBomb Open Data. The Gallery rebuilds the match event by event and, at full time, checks its score against the official result.</p>
+      <h3>Archive match</h3>
+      <p class="muted small">Validation only: event data from StatsBomb Open Data, rebuilt event by event and checked against the published result.</p>
       <label>Match <select id="realSelect"></select></label>
-      <menu><button value="cancel" class="btn ghost">Cancel</button><button value="ok" class="btn accent">Load match</button></menu>
+      <menu><button value="cancel" class="btn ghost">Cancel</button><button value="ok" class="btn primary">Load match</button></menu>
     </form>
   </dialog>
 
   <dialog id="viewerDialog">
     <form method="dialog" class="dlg">
-      <h3>Personalise this match</h3>
-      <p class="muted small">Same verified stories, shaped for one viewer. Nothing new is written: the order, depth and focus change.</p>
-      <label>Viewer
-        <span class="seg" id="vMode"><button type="button" data-v="casual" class="on">Casual fan</button><button type="button" data-v="analyst">Analyst</button></span></label>
+      <h3>Stories for a single fan</h3>
+      <p class="muted small">Preview what one viewer would see. Nothing new is written: the same checked stories are re-ordered and trimmed.</p>
+      <label>What kind of fan?
+        <span class="seg" id="vMode"><button type="button" data-v="casual" class="on">Casual: the big moments, in plain words</button><button type="button" data-v="analyst">Analyst: every number and the evidence</button></span></label>
       <label>Favourite club <select id="vClub"><option value="">No favourite</option><option value="HOME" id="vClubHome">Home</option><option value="AWAY" id="vClubAway">Away</option></select></label>
-      <label>Player focus <select id="vPlayer"><option value="">Off</option></select></label>
+      <label>Follow a player <select id="vPlayer"><option value="">No one</option></select></label>
       <label>Language <select id="vLang"><option value="world">English</option><option value="br">Brazilian Portuguese</option><option value="za">isiZulu</option></select></label>
-      <menu><button value="cancel" class="btn ghost">Cancel</button><button value="ok" class="btn accent">Apply</button></menu>
+      <menu><button value="cancel" class="btn ghost">Cancel</button><button value="ok" class="btn primary">Show these stories</button></menu>
     </form>
   </dialog>
 
   <dialog id="liveDialog">
     <form method="dialog" class="dlg">
-      <h3>New live match</h3>
-      <p class="muted small">Log events while you watch. Every storyline is built and checked from what you log.</p>
+      <h3>Log a match by hand</h3>
+      <p class="muted small">Log events while you watch. Every story is built and checked from what you log.</p>
       <label>Home team <input id="dHome" value="Northbridge FC" required></label>
       <label>Away team <input id="dAway" value="Riverside Athletic" required></label>
       <label>Match date <input id="dDate" value=""></label>
-      <label>Official final score (optional, checked at full time)
+      <label>Final score, if known (checked at full time)
         <span class="inline"><input id="dOffH" value="" style="width:60px"> – <input id="dOffA" value="" style="width:60px"></span></label>
-      <label>Brazil feed: focus players <input id="dBr" placeholder="comma separated, e.g. Santos"></label>
-      <label>SA feed: focus players <input id="dZa" placeholder="comma separated"></label>
-      <menu><button value="cancel" class="btn ghost">Cancel</button><button value="ok" class="btn accent" id="dCreate">Create</button></menu>
+      <label>Brazil feed: players to follow <input id="dBr" placeholder="comma separated, e.g. Santos"></label>
+      <label>South Africa feed: players to follow <input id="dZa" placeholder="comma separated"></label>
+      <menu><button value="cancel" class="btn ghost">Cancel</button><button value="ok" class="btn primary" id="dCreate">Create match</button></menu>
     </form>
   </dialog>
 
-  <footer class="attrib hidden" id="attrib">Data: StatsBomb Open Data · github.com/statsbomb/open-data</footer>
+  <footer class="attrib hidden" id="attrib">Data: StatsBomb Open Data</footer>
   <script src="/static/app.js"></script>
 </body>
 </html>

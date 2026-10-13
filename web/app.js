@@ -19,7 +19,9 @@
   const fmt = (t) => { const m = Math.floor(t / 60), s = Math.floor(t % 60); return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`; };
   const DET = { turning_point: "Turning point", red_card: "Red card", goal: "Goal", momentum_shift: "Momentum shift", counterattack: "Counterattack", goal_threat: "Pressure, no goal", standout: "Standout performer" };
   const ICON = { verified: "✓", needs_human: "!", blocked: "✕" };
-  const VLABEL = { verified: "verified", needs_human: "needs human", blocked: "blocked" };
+  const VLABEL = { verified: "Checked", needs_human: "Needs your eye", blocked: "Blocked" };
+  const STATUS = { drafted: "Waiting for you", edited: "Edited, waiting", approved: "On air", rejected: "Rejected",
+    needs_correction: "Facts changed", superseded: "Replaced" };
 
   async function api(path, opts = {}) {
     const r = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts, body: opts.body ? JSON.stringify(opts.body) : undefined });
@@ -53,8 +55,7 @@
   function connect(id) {
     if (S.ws) { S.ws.onclose = null; S.ws.close(); }
     Object.assign(S, { matchId: id, events: [], insights: {}, storylines: {}, rankings: {}, selected: null, whyNot: {}, viewer: null, playerCard: null });
-    if (S.market === "viewer") { S.market = "world"; document.querySelectorAll("#marketSeg button").forEach((x) => x.classList.toggle("on", x.dataset.market === "world")); }
-    if ($("viewerBtn")) $("viewerBtn").textContent = "For you…";
+    if (S.market === "viewer") { S.market = "world"; $("audienceSel").value = "world"; setAudienceHelp(); }
     const proto = location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(`${proto}://${location.host}/ws/${id}`);
     S.ws = ws;
@@ -164,17 +165,18 @@
     const rc = S.snap.result_check, rb = $("resultCheck");
     if (rc && rc.finished) {
       rb.className = "result " + (rc.match ? "ok" : "bad");
-      rb.textContent = rc.match ? `✓ matches official result ${rc.official.HOME}–${rc.official.AWAY}` : `✕ official result ${rc.official.HOME}–${rc.official.AWAY}`;
+      rb.textContent = rc.match ? `✓ matches the result` : `✕ result was ${rc.official.HOME}–${rc.official.AWAY}`;
+      rb.title = "At full time the score rebuilt from the events is compared with the fixture's known result.";
     } else rb.className = "result hidden";
     renderFeedPanel();
-    renderFeed(); renderMomentum(); renderQueue(); renderInspector(); renderMiniTrace();
+    renderFeed(); renderMomentum(); renderQueue(); renderInspector(); renderMiniTrace(); renderPipe();
     if (S.tab === "trust") renderTrust();
     if (S.tab === "newsroom") renderNewsroom();
     $("traceCount").textContent = S.trace.length ? S.trace.length : "";
   }
 
   const CAP_LABEL = { passes: "passes", regains: "ball regains", box_entries: "box entries", xg: "xG", shot_position: "shot positions" };
-  const SOURCE_TITLE = { espn: "ESPN feed · external validation", real: "StatsBomb archive · validation", file: "Data file", replay: "Synthetic test match", fixture: "Synthetic fixture", live: "Hand-logged" };
+  const SOURCE_TITLE = { espn: "ESPN feed · external validation", real: "StatsBomb archive · validation", file: "Data file", replay: "Synthetic test match", fixture: "About this match data", live: "Hand-logged" };
   function renderFeedPanel() {
     const m = S.snap.meta || {}, mode = S.snap.mode, caps = S.snap.caps || {};
     $("feedPanel").classList.remove("hidden");
@@ -219,28 +221,127 @@
       `<li class="${["shot", "box_entry", "own_goal", "card"].includes(e.type) ? "key" : ""}"><span class="m">${fmt(e.clock ?? e.t)}</span><span class="bar" style="background:var(--${teamClass(e.team_id)})"></span><span>${["period_end", "kick_off"].includes(e.type) ? "" : esc(S.snap.names[e.team_id]) + ": "}${esc(label(e))}</span></li>`).join("");
   }
 
-  function renderMomentum() {
-    const maxMin = Math.max(90, Math.ceil(nowT() / 60));
+  // ------------------------------------------------------------------ "who is on top" chart
+  const W8 = (e) => (e.type === "shot" ? 2 : e.type === "box_entry" ? 1 : (e.type === "pass" && (e.end_x || 0) >= 66.7 ? 0.25 : 0));
+  const minOf = (e) => Math.floor((e.clock ?? e.t) / 60);
+  const surname = (p) => (p || "").split(" ").pop();
+  function threatSeries(maxMin) {
     const per = { HOME: new Array(maxMin + 1).fill(0), AWAY: new Array(maxMin + 1).fill(0) };
-    for (const e of S.events) {
-      const w = e.type === "shot" ? 2 : e.type === "box_entry" ? 1 : (e.type === "pass" && (e.end_x || 0) >= 66.7 ? 0.25 : 0);
-      if (w && per[e.team_id]) per[e.team_id][Math.min(maxMin, Math.floor((e.clock ?? e.t) / 60))] += w;
-    }
-    // 3-minute rolling sum
+    for (const e of S.events) { const w = W8(e); if (w && per[e.team_id]) per[e.team_id][Math.min(maxMin, minOf(e))] += w; }
     const roll = (a) => a.map((_, i) => a.slice(Math.max(0, i - 2), i + 1).reduce((x, y) => x + y, 0));
-    const h = roll(per.HOME), a = roll(per.AWAY);
-    const peak = Math.max(4, ...h, ...a), W = 300, H = 120, mid = 60, bw = W / (maxMin + 1);
-    let svg = `<line x1="0" y1="${mid}" x2="${W}" y2="${mid}" stroke="#2f323a" stroke-width="1"/>`;
-    svg += `<line x1="${(45 / maxMin) * W}" y1="0" x2="${(45 / maxMin) * W}" y2="${H}" stroke="#24262d" stroke-dasharray="2 3"/>`;
-    for (let i = 0; i <= maxMin; i++) {
-      const hh = (h[i] / peak) * (mid - 4), ah = (a[i] / peak) * (mid - 4), x = i * bw;
-      if (hh) svg += `<rect x="${x}" y="${mid - hh}" width="${Math.max(bw - 0.6, 0.6)}" height="${hh}" fill="var(--home)" opacity=".85"/>`;
-      if (ah) svg += `<rect x="${x}" y="${mid}" width="${Math.max(bw - 0.6, 0.6)}" height="${ah}" fill="var(--away)" opacity=".85"/>`;
-    }
-    const nx = (nowT() / 60 / maxMin) * W;
-    svg += `<line x1="${nx}" y1="0" x2="${nx}" y2="${H}" stroke="#e9eaee" stroke-width=".8" opacity=".5"/>`;
-    $("momentum").innerHTML = svg;
+    return { raw: per, HOME: roll(per.HOME), AWAY: roll(per.AWAY) };
   }
+  function keyMoments() {
+    const out = [];
+    for (const e of S.events) {
+      if ((e.type === "shot" && e.outcome === "goal") || e.type === "own_goal") out.push({ kind: "goal", team: e.team_id, m: minOf(e) + 1, who: surname(e.player) + (e.type === "own_goal" ? " (o.g.)" : "") });
+      if (e.type === "card" && e.outcome === "red") out.push({ kind: "red", team: e.team_id, m: minOf(e) + 1, who: surname(e.player) });
+    }
+    return out;
+  }
+  function renderMomentum() {
+    const names = S.snap.names, now = nowT();
+    const maxMin = Math.max(90, Math.ceil(now / 60));
+    const ser = threatSeries(maxMin);
+    const X0 = 10, X1 = 850, MID = 92, H = 78, W = X1 - X0, bw = W / (maxMin + 1);
+    const peak = Math.max(4, ...ser.HOME, ...ser.AWAY);
+    const x = (m) => X0 + (m / (maxMin + 1)) * W;
+    let svg = `<rect x="${X0}" y="${MID - H - 2}" width="${W}" height="${H + 2}" fill="rgba(122,176,255,.04)"/><rect x="${X0}" y="${MID}" width="${W}" height="${H + 2}" fill="rgba(245,158,91,.04)"/>`;
+    for (let i = 0; i <= maxMin; i++) {
+      const hh = (ser.HOME[i] / peak) * (H - 4), ah = (ser.AWAY[i] / peak) * (H - 4), xx = x(i);
+      if (hh) svg += `<rect x="${xx}" y="${MID - hh}" width="${Math.max(bw - 0.7, 0.6)}" height="${hh}" fill="var(--home)" opacity=".9"/>`;
+      if (ah) svg += `<rect x="${xx}" y="${MID}" width="${Math.max(bw - 0.7, 0.6)}" height="${ah}" fill="var(--away)" opacity=".9"/>`;
+    }
+    svg += `<line x1="${X0}" y1="${MID}" x2="${X1}" y2="${MID}" stroke="var(--line-2)"/>`;
+    // half-time and minute axis
+    svg += `<line x1="${x(45)}" y1="${MID - H - 2}" x2="${x(45)}" y2="${MID + H + 2}" stroke="var(--line-2)" stroke-dasharray="2 3"/>`;
+    for (const m of [0, 15, 30, 45, 60, 75, 90]) svg += `<text x="${x(m)}" y="${MID + H + 18}" text-anchor="${m === 0 ? "start" : m === 90 ? "end" : "middle"}">${m === 45 ? "HT" : m + "'"}</text>`;
+    svg += `<text class="team-l" x="${X0 + 4}" y="${MID - H + 12}" fill="var(--home)">▲ ${esc(names.HOME)} attacking</text>`;
+    svg += `<text class="team-l" x="${X0 + 4}" y="${MID + H - 4}" fill="var(--away)">▼ ${esc(names.AWAY)} attacking</text>`;
+    // goals and red cards
+    keyMoments().forEach((k, i) => {
+      const xx = x(k.m - 0.5), top = k.team === "HOME", y = top ? MID - H + 26 + (i % 2) * 15 : MID + H - 24 - (i % 2) * 15;
+      const icon = k.kind === "goal" ? `<circle cx="${xx}" cy="${y}" r="5" fill="var(--text)" stroke="#13171D" stroke-width="1.5"/>`
+        : `<rect x="${xx - 3.5}" y="${y - 5}" width="7" height="10" rx="1.2" fill="var(--bad)"/>`;
+      const anchor = xx > X1 - 90 ? "end" : "start", dx = anchor === "end" ? -8 : 8;
+      svg += `<line x1="${xx}" y1="${MID}" x2="${xx}" y2="${y}" stroke="var(--line-2)" stroke-width=".6"/>${icon}<text class="mk-l" x="${xx + dx}" y="${y + 3}" text-anchor="${anchor}">${esc(k.who)} ${k.m}'</text>`;
+    });
+    const nx = x(now / 60);
+    if (now > 0) svg += `<line x1="${nx}" y1="${MID - H - 2}" x2="${nx}" y2="${MID + H + 2}" stroke="var(--text)" stroke-width=".8" opacity=".55"/>`;
+    $("momentum").innerHTML = svg;
+    S._chart = { x0: X0, x1: X1, maxMin, ser };
+    $("legHome").textContent = names.HOME; $("legAway").textContent = names.AWAY;
+    $("momentumNow").innerHTML = threatSummary(now);
+  }
+  function windowStats(fromMin, toMin) {
+    const st = { HOME: { threat: 0, shots: 0, box: 0, goals: 0 }, AWAY: { threat: 0, shots: 0, box: 0, goals: 0 } };
+    for (const e of S.events) {
+      const m = (e.clock ?? e.t) / 60; if (m < fromMin || m > toMin || !st[e.team_id]) continue;
+      const t = st[e.team_id]; t.threat += W8(e);
+      if (e.type === "shot") t.shots++; if (e.type === "box_entry") t.box++;
+      if ((e.type === "shot" && e.outcome === "goal") || e.type === "own_goal") t.goals++;
+    }
+    return st;
+  }
+  const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+  function threatSummary(now) {
+    if (!S.events.length) return "Press Play. The chart fills in as the match happens.";
+    const names = S.snap.names, m = now / 60;
+    const last = windowStats(Math.max(0, m - 10), m), all = windowStats(0, m);
+    const lt = last.HOME.threat + last.AWAY.threat, at = all.HOME.threat + all.AWAY.threat;
+    const cls = (t) => (t === "HOME" ? "home-t" : "away-t");
+    let head;
+    if (lt < 1) head = `Quiet spell: no shots or box entries in the last 10 minutes.`;
+    else {
+      const top = last.HOME.threat >= last.AWAY.threat ? "HOME" : "AWAY", other = top === "HOME" ? "AWAY" : "HOME";
+      const pct = Math.round((100 * last[top].threat) / lt);
+      const verb = pct >= 75 ? "are pinning" : pct >= 60 ? "are on top of" : "are edging";
+      head = `<b class="${cls(top)}">${esc(names[top])}</b> ${verb} ${esc(names[other])}: <b>${pct}%</b> of the attacking threat in the last 10 minutes (${plural(last[top].shots, "shot")}, ${plural(last[top].box, "box entry").replace("entrys", "entries")} against ${plural(last[other].shots, "shot")}).`;
+    }
+    const sub = at >= 1 ? `Whole match so far: <span class="home-t">${esc(names.HOME)} ${Math.round((100 * all.HOME.threat) / at)}%</span>, <span class="away-t">${esc(names.AWAY)} ${Math.round((100 * all.AWAY.threat) / at)}%</span>.` : "";
+    return `${head}<span class="sub">${sub} Computed from the event feed, not written by AI.</span>`;
+  }
+  function chartHover(ev) {
+    const c = S._chart, tip = $("momentumTip"); if (!c) return;
+    const svg = $("momentum"), r = svg.getBoundingClientRect();
+    const vx = ((ev.clientX - r.left) / r.width) * 860;
+    if (vx < c.x0 || vx > c.x1) { tip.classList.add("hidden"); return; }
+    const m = Math.min(c.maxMin, Math.max(0, Math.floor(((vx - c.x0) / (c.x1 - c.x0)) * (c.maxMin + 1))));
+    const evs = S.events.filter((e) => minOf(e) === m && ["shot", "own_goal", "card", "box_entry"].includes(e.type));
+    const lab = (e) => `${esc(S.snap.names[e.team_id])}: ${e.type === "shot" ? (e.outcome === "goal" ? "GOAL" : "shot " + (e.outcome || "").replace("_", " ")) : e.type === "own_goal" ? "own goal" : e.type === "card" ? e.outcome + " card" : "box entry"}${e.player ? " · " + esc(e.player) : ""}`;
+    tip.innerHTML = `<b>${m + 1}'</b><span class="home-t">${esc(S.snap.names.HOME)} ${c.ser.HOME[m].toFixed(1)}</span> · <span class="away-t">${esc(S.snap.names.AWAY)} ${c.ser.AWAY[m].toFixed(1)}</span>
+      <div class="muted small">threat over the last 3 minutes</div>${evs.slice(0, 5).map((e) => `<div>${lab(e)}</div>`).join("")}`;
+    tip.classList.remove("hidden");
+    const left = Math.min(r.width - 190, Math.max(0, ev.clientX - r.left + 12));
+    tip.style.left = left + "px"; tip.style.top = "10px";
+  }
+  $("momentum").addEventListener("mousemove", chartHover);
+  $("momentum").addEventListener("mouseleave", () => $("momentumTip").classList.add("hidden"));
+
+  // ------------------------------------------------------------------ pipeline strip
+  function renderPipe() {
+    const f = S.funnel || {}, st = Object.values(S.storylines).filter((x) => x.market === "world");
+    const waiting = st.filter((x) => ["drafted", "edited"].includes(x.status) && x.overall !== "blocked").length;
+    const onAir = st.filter((x) => x.status === "approved").length;
+    const pulled = st.filter((x) => x.status === "needs_correction").length;
+    const set = (step, text, cls) => { const li = document.querySelector(`.pipe li[data-step="${step}"]`); li.className = cls || ""; li.querySelector("span").textContent = text; };
+    const n = S.events.length;
+    set("feed", n ? `${n} events, ${fmt(nowT())} played` : "waiting for kick-off", n ? "live" : "");
+    set("agents", f.storylines ? `${plural(f.storylines, "story")} from ${plural(f.insights, "moment")}`.replace("storys", "stories") : "watching for moments", f.storylines ? "live" : "");
+    set("check", f.storylines ? `${f.verified || 0} checked, ${f.flagged || 0} need your eye, ${f.blocked || 0} blocked` : "nothing to check yet", f.flagged || f.blocked ? "attn" : f.storylines ? "live" : "");
+    set("approve", pulled ? `${pulled} on air but facts changed` : waiting ? `${waiting} waiting for you, ${onAir} on air` : onAir ? `${onAir} on air` : "nothing waiting", pulled || waiting ? "attn" : onAir ? "live" : "");
+    set("package", S.pkg ? `${S.pkg.label} package built` : "build one at half-time", S.pkg ? "live" : "");
+  }
+
+  // ------------------------------------------------------------------ help
+  function openHelp() { $("help").classList.remove("hidden"); }
+  $("helpBtn").onclick = openHelp;
+  $("helpClose").onclick = () => { $("help").classList.add("hidden"); try { localStorage.setItem("gallery.helpSeen", "1"); } catch (_) {} };
+  document.querySelectorAll(".pipe li").forEach((li) => (li.onclick = openHelp));
+  try { if (!localStorage.getItem("gallery.helpSeen")) openHelp(); } catch (_) {}
+  document.querySelectorAll("#toolsMenu .menu-item").forEach((b) => b.addEventListener("click", () => $("toolsMenu").removeAttribute("open")));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { $("help").classList.add("hidden"); $("toolsMenu").removeAttribute("open"); } });
+
 
   function storyFor(insightId) {
     const all = Object.values(S.storylines).filter((s) => s.insight_id === insightId && s.status !== "superseded")
@@ -255,7 +356,10 @@
     $("queue").innerHTML = top.length ? top.map(({ r, s }) => card(s, r, false)).join("")
       : `<div class="empty">${S.events.length ? "Watching… no story in the last 15 minutes yet." : (S.snap.mode === "live" ? "Press Kick-off, then log events as you watch." : S.snap.mode === "real" ? `Real match: ${esc(S.snap.meta.date || "")} · ${esc(S.snap.meta.stadium || "")}. Press Play to replay it event by event.` : "Press Play to start the replay.")}</div>`;
     const f = S.funnel || {};
-    $("queueNote").textContent = S.market === "viewer" && S.viewer ? `Audience preview · ${S.viewer.mode === "analyst" ? "Analyst" : "Casual fan"}${S.viewer.club ? " · supports " + S.snap.names[S.viewer.club] : ""}${S.viewer.player ? " · following " + S.viewer.player : ""} · same verified stories, re-ordered and trimmed` : "Ranked by code: importance · novelty · confidence · graphic readiness · market relevance";
+    $("queueNote").textContent = S.market === "viewer" && S.viewer
+      ? `What ${fanLabel()} would see: the same checked stories, re-ordered and trimmed for them.`
+      : S.market !== "world" ? `The strongest checked stories for the ${({ br: "Brazil", za: "South Africa" })[S.market]} feed. The lead story changes with the audience.`
+      : "The three strongest checked stories from the last 15 minutes, ranked by code. Click one to review it.";
     $("funnel").textContent = `${f.insights || 0} insights → ${f.storylines || 0} storylines → ${f.verified || 0} verified · ${f.flagged || 0} flagged · ${f.blocked || 0} blocked → ${f.approved || 0} approved`;
     const rankById = Object.fromEntries((S.rankings[S.market] || []).map((r) => [r.insight_id, r]));
     const list = Object.values(S.storylines).filter((s) => s.market === "world").sort((a, b) => b.minute - a.minute || b.created_at - a.created_at);
@@ -277,28 +381,49 @@
       if (nums.length) segs += `<li class="nums">${nums.join("")}</li>`;
     }
     const local = s.market !== "world" ? ` · ${esc(s.writer.startsWith("not localised") ? "EN (not localised)" : s.language)}` : "";
-    const corr = s.status === "needs_correction" && s.correction ? `<div class="corr">⚠ Correction needed: ${esc(s.correction.detail)} <span class="muted">(${esc(s.correction.reason)})</span>${replacementOf(s) ? ` · <b>corrected version drafted</b>` : ""}</div>` : "";
-    const ver = (s.version > 1 ? `<span class="pill warn" title="The Verifier rejected an earlier draft; the Writer revised it">v${s.version} · revised</span>` : "")
-      + (s.supersedes ? `<span class="pill bad" title="Correction of ${esc(s.supersedes)}">correction</span>` : "")
-      + (s.red_team ? `<span class="pill" title="Red-team test: the first draft carried a labelled false sentence">red-team</span>` : "");
+    const corr = s.status === "needs_correction" && s.correction ? `<div class="corr">⚠ Facts changed: ${esc(s.correction.detail)} <span class="muted">(${esc(s.correction.reason)})</span>${replacementOf(s) ? ` · <b>corrected version drafted</b>` : ""}</div>` : "";
+    const ver = (s.version > 1 ? `<span class="pill warn" title="The checker rejected an earlier draft; the Writer rewrote it">rewritten ${s.version - 1}×</span>` : "")
+      + (s.supersedes ? `<span class="pill bad" title="Replaces a story whose facts changed">corrected version</span>` : "")
+      + (s.red_team ? `<span class="pill" title="Test: the first draft had a planted false sentence">test draft</span>` : "");
     const mine = v && ((v.club && s.team_id === v.club) || (v.player && r?.player_focus));
     return `<article class="card ${mine ? "mine" : ""} ${compact ? "compact" : ""} ${S.selected === s.storyline_id ? "sel" : ""} ${s.status === "needs_correction" ? "needs_correction" : ""}" data-sid="${s.storyline_id}" id="card-${s.storyline_id}">
-      <div class="card-top">${r && !compact ? `<span class="rank" title="Ranked ${r.rank} of the stories in the last 15 minutes">#${r.pos ?? r.rank}</span>` : ""}<span>${DET[s.detector] || s.detector}</span><span>${s.minute}'</span>
-        <span class="tag ${teamClass(s.team_id)}">${esc(team)}</span>${r ? `<span>score ${r.score.toFixed(2)}</span>` : ""}${local}
-        ${ver}<span class="status ${s.status}">${s.status.replace("_", " ")}</span></div>
+      <div class="card-top">${r && !compact ? `<span class="rank" title="Position in the rundown. Ranked by code: importance, novelty, confidence, how well it shows on screen, and relevance to this audience.">${r.pos ?? r.rank}</span>` : ""}<span class="what">${DET[s.detector] || s.detector}</span><span>${s.minute}'</span>
+        <span class="tag ${teamClass(s.team_id)}">${esc(team)}</span>${local}
+        ${ver}<span class="status ${s.status}" title="${esc(STATUS_HELP[s.status] || "")}">${STATUS[s.status] || s.status}</span></div>
       <div class="headline">${esc(s.headline)} <span class="vchip ${s.overall}">${VLABEL[s.overall]}</span></div>${corr}
-      ${compact ? "" : `<ul class="segs">${segs}</ul>${v ? "" : `<div class="card-foot"><span>${esc(s.writer)}</span><span>${fmtMs(s.latency_ms)} event→verified</span><span>${esc(s.graphic.template)}</span><span>clip ${esc(s.clip_cue.from)}–${esc(s.clip_cue.to)}</span></div>`}`}
+      ${compact ? "" : `<ul class="segs">${segs}</ul>${v ? "" : `<div class="card-foot"><span>Ready ${fmtMs(s.latency_ms)} after the moment</span><span>${writerName(s.writer)}</span><span>Video clip ${esc(s.clip_cue.from)}–${esc(s.clip_cue.to)}</span></div>`}`}
     </article>`;
   }
 
   function segRow(s, g, i, compact) {
     return `<li class="seg-row ${g.verdict} ${g.struck ? "struck" : ""}" data-sid="${s.storyline_id}" data-idx="${i}">
       <span class="v-icon" aria-label="${VLABEL[g.verdict]}">${ICON[g.verdict]}</span>
-      <span class="v">${esc(g.text)}${g.injected ? `<span class="inj">injected test</span>` : ""}</span>
+      <span class="v">${esc(g.text)}${g.injected ? `<span class="inj">planted test lie</span>` : ""}</span>
       ${g.verdict !== "verified" ? `<span class="why">${esc(g.reason)}</span>` : ""}
     </li>`;
   }
 
+  const STATUS_HELP = { drafted: "Checked and waiting for you to approve or reject", edited: "You edited it; checked again and waiting",
+    approved: "You approved it: it is on air", rejected: "You kept it off air", needs_correction: "The match data changed after you approved it",
+    superseded: "Replaced by a corrected version" };
+  function writerName(w) {
+    if (!w || w === "template") return "templates";
+    if (w.includes("headline")) return "templates, headline by the on-device model";
+    if (w.startsWith("not localised")) return "templates (not translated: needs a model)";
+    if (w.startsWith("template")) return "templates";
+    return "AI model";
+  }
+  function fanLabel() {
+    const v = S.viewer; if (!v) return "a fan";
+    return `a ${v.mode === "analyst" ? "data-hungry analyst" : "casual fan"}${v.club ? ` who supports ${S.snap.names[v.club]}` : ""}${v.player ? `${v.club ? " and" : ""} follows ${v.player}` : ""}`;
+  }
+  function setAudienceHelp() {
+    const m = $("audienceSel").value;
+    $("audienceHelp").textContent = m === "viewer" && S.viewer ? `Showing what ${fanLabel()} would see. Pick again to change.`
+      : m === "br" ? "Brazil's feed leads with attacking moments, in Portuguese."
+      : m === "za" ? "South Africa's feed leads with players, in isiZulu."
+      : "Same checked facts; the order and angle change per audience.";
+  }
   function numLabel(c) {
     const team = S.snap.names[c.params?.team_id];
     const k = (c.key || c.metric).replace(/^(up|down|opp|team|home|away)_/, "").replace(/_/g, " ");
@@ -336,7 +461,7 @@
       if (g.verdict === "blocked" && !g.struck) ctrl = `<label class="ack" style="color:var(--bad)"><input type="checkbox" class="strike" data-idx="${i}" checked> strike this sentence before approval</label>`;
       if (g.verdict === "needs_human" && !g.struck) ctrl = `<label class="ack"><input type="checkbox" class="acknowledge" data-idx="${i}"> I've checked this wording</label>`;
       return `<li class="seg-row ${g.verdict} ${g.struck ? "struck" : ""}" data-sid="${s.storyline_id}" data-idx="${i}">
-        <span class="v-icon">${ICON[g.verdict]}</span><span class="v">${esc(g.text)}${g.injected ? `<span class="inj">injected test</span>` : ""}</span>
+        <span class="v-icon">${ICON[g.verdict]}</span><span class="v">${esc(g.text)}${g.injected ? `<span class="inj">planted test lie</span>` : ""}</span>
         ${g.verdict !== "verified" ? `<span class="why">${esc(g.reason)}</span>` : ""}
         <span style="grid-column:2">${ctrl}<textarea class="edit-area hidden" data-idx="${i}" rows="2">${esc(g.text)}</textarea></span></li>`;
     }).join("");
@@ -353,23 +478,27 @@
       ${s.headline_verdict !== "verified" ? `<div class="small" style="color:var(--${s.headline_verdict === "blocked" ? "bad" : "warn"})">${esc(s.headline_reason)}</div>` : ""}
       ${hAck}
       <input class="edit-area hidden" id="editHeadline" value="${esc(s.headline)}">
+      <h4>Is it true?</h4><p class="sub">Every sentence is checked against the match data. Hover one to see the evidence.</p>
       <ul class="segs">${segs}</ul>${commission}
       <div class="btnrow">
-        <button class="btn good" id="approveBtn" ${["approved", "superseded"].includes(s.status) || s.overall === "blocked" && !s.segments.some((g) => g.verdict === "blocked") ? "disabled" : ""}>${s.supersedes ? "Approve correction" : "Approve for air"}</button>
-        <button class="btn ghost" id="editBtn">Edit</button>
-        <button class="btn bad" id="rejectBtn" ${s.status === "rejected" ? "disabled" : ""}>Reject</button>
-        <button class="btn warn" id="injectBtn" title="Insert a deliberately false, labelled test sentence to show the gate working">Red-team: inject false claim</button>
-        ${["goal", "turning_point", "counterattack"].includes(s.detector) ? `<button class="btn warn" id="corrBtn" title="Simulate the feed re-crediting this goal or shot to another player, as leagues do after review. Approved stories that become wrong turn red.">Test: simulate data correction</button>` : ""}
+        <button class="btn primary" id="approveBtn" title="Put this story on air. Only checked sentences can go out." ${["approved", "superseded"].includes(s.status) || s.overall === "blocked" && !s.segments.some((g) => g.verdict === "blocked") ? "disabled" : ""}>${s.supersedes ? "Approve correction" : "Approve for air"}</button>
+        <button class="btn ghost" id="editBtn" title="Change the wording. Your edit is checked again before it can go out.">Edit</button>
+        <button class="btn bad" id="rejectBtn" title="Keep this story off air." ${s.status === "rejected" ? "disabled" : ""}>Reject</button>
       </div>
-      <h4>Agent trace <span class="faint">· ${s.revisions ? `${s.revisions} revision${s.revisions > 1 ? "s" : ""}` : "first draft passed"}</span></h4>
+      <details class="explain"><summary>Test this story</summary>
+        <div class="btnrow">
+          <button class="btn warn" id="injectBtn" title="Adds a labelled false sentence to this story so you can see the checker block it">Plant a false sentence</button>
+          ${["goal", "turning_point", "counterattack"].includes(s.detector) ? `<button class="btn warn" id="corrBtn" title="Pretend the league re-credits this goal to another player. If the story was approved, it is pulled and a corrected version is drafted.">Pretend the data changes</button>` : ""}
+        </div></details>
+      <h4>How the agents made it <span class="faint">${s.revisions ? `rewritten ${s.revisions}× before it passed` : "first draft passed the checker"}</span></h4>
       <ol class="trace story">${traceRows(S.storyTrace[s.storyline_id] || [], true) || `<li class="muted small">Loading…</li>`}</ol>
-      <h4>Why this rank</h4><div class="factors">${factors}</div>
-      <h4>Why not the others?</h4><div class="whynot">${whyNot}</div>
-      <h4>Air details</h4>
-      <div class="kv"><span>Status</span><span>${s.status}</span><span>Writer</span><span>${esc(s.writer)}</span>
-        <span>Event → verified</span><span>${fmtMs(s.latency_ms)}</span><span>Graphic</span><span>${esc(s.graphic.template)}</span>
+      <h4>Why it ranks here</h4><p class="sub">Each bar is one thing the ranking formula weighs. Longer is stronger.</p><div class="factors">${factors}</div>
+      <h4>Why not the other stories?</h4><div class="whynot">${whyNot}</div>
+      <h4>Broadcast details</h4>
+      <div class="kv"><span>Status</span><span>${STATUS[s.status] || s.status}</span><span>Written by</span><span>${writerName(s.writer)}</span>
+        <span>Ready after</span><span>${fmtMs(s.latency_ms)}</span><span>Graphic</span><span>${esc(s.graphic.template.replace(/_/g, " "))}</span>
         <span>Clip cue</span><span>${esc(s.clip_cue.from)}–${esc(s.clip_cue.to)} · ${esc(s.clip_cue.label)}</span>
-        <span>Evidence</span><span>${s.graphic.event_ids.length} events</span></div>`;
+        <span>Evidence</span><span>${s.graphic.event_ids.length} match events</span></div>`;
     $("approveBtn").onclick = () => approve(s);
     $("inspBody").querySelectorAll("[data-goto]").forEach((b) => (b.onclick = () => b.dataset.goto && select(b.dataset.goto)));
     $("rejectBtn").onclick = () => decide(s.storyline_id, { action: "reject" });
@@ -409,10 +538,10 @@
     if (!row) { hc.classList.add("hidden"); return; }
     const s = S.storylines[row.dataset.sid]; const g = s?.segments[+row.dataset.idx];
     if (!g) return;
-    let html = `<h5>${VLABEL[g.verdict]} · ${esc(g.reason)}</h5>`;
+    let html = `<h5 class="${g.verdict}">${VLABEL[g.verdict]}: ${esc(g.reason)}</h5>`;
     if (!g.checks || !g.checks.length) html += `<div class="muted">No structured claim attached, so nothing could be checked.</div>`;
     for (const c of g.checks || []) {
-      html += `<div class="cmp"><span>Claim <b>${esc(c.metric)} ${esc(c.op)} ${esc(c.value)}</b></span><span>Data <b style="color:var(--${c.ok ? "ok" : "bad"})">${esc(c.actual ?? "n/a")}</b></span></div>`;
+      html += `<div class="cmp"><span>The story says <b>${esc(numLabel(c))} ${c.op === "==" ? "=" : esc(c.op)} ${esc(c.value)}</b></span><span>The data says <b style="color:var(--${c.ok ? "ok" : "bad"})">${esc(c.actual ?? "not available")}</b></span></div>`;
       if (c.sql) html += `<pre>${esc(sqlWithParams(c.sql, c.sql_params || []))}</pre>`;
       if (c.rows && c.rows.length) {
         html += `<table><tr><th>min</th><th>team</th><th>type</th><th>outcome</th><th>player</th><th>id</th></tr>` +
@@ -578,7 +707,7 @@
     const p = S.provider || S.snap?.provider; if (!p) return;
     const b = $("writerBadge");
     const name = p.provider === "foundry_local" ? "Foundry Local" : p.provider === "azure_openai" ? "Azure OpenAI" : p.provider === "openai_compatible" ? "OpenAI-compatible" : "template";
-    b.textContent = p.status === "ready" ? `model: ${name}${p.model ? " · " + p.model.split(":")[0].replace(/-instruct.*$/, "") : ""}` : `model: template · ${p.selected.replace("_", " ")} ${p.status}`;
+    b.textContent = p.status === "ready" && p.provider !== "template" ? `Writer: ${name} (${(p.model || "").split(":")[0].replace(/-instruct.*$/, "")})` : p.selected !== "template" ? `Writer: templates (${name === "template" ? p.selected.replace("_", " ") : name} ${p.status})` : "Writer: templates";
     b.title = p.detail + (p.failures ? ` · ${p.failures} model failures fell back to templates` : "");
     b.className = "badge " + (p.status === "ready" && p.provider !== "template" ? "on" : ["starting", "downloading", "loading"].includes(p.status) ? "busy" : "");
   }
@@ -640,8 +769,7 @@
       const r = await api(`/api/matches/${S.matchId}/viewer`, { method: "POST", body });
       S.viewer = r.market.viewer; S.explainers = r.explainers; S.market = "viewer";
       S.rankings.viewer = r.ranking;
-      document.querySelectorAll("#marketSeg button").forEach((x) => x.classList.toggle("on", x.dataset.market === "viewer"));
-      $("viewerBtn").textContent = viewerLabel();
+      $("audienceSel").value = "viewer"; setAudienceHelp();
       refreshPlayer(true); schedule();
     } catch (e) { toast(e.message, true); }
   });
@@ -822,13 +950,13 @@
     if ($("dZa").value.trim()) body.markets.za = { focus_players: split($("dZa").value) };
     try { const s = await api("/api/matches", { method: "POST", body }); loadMatches(s.match_id); } catch (e) { toast(e.message, true); }
   });
-  document.querySelectorAll("#marketSeg button").forEach((b) => (b.onclick = async () => {
-    if (b.dataset.market === "viewer") return openViewer();
-    document.querySelectorAll("#marketSeg button").forEach((x) => x.classList.toggle("on", x === b));
-    S.market = b.dataset.market; S.viewer = null; renderPlayer();
-    if (S.market !== "world" && S.matchId) { try { await api(`/api/matches/${S.matchId}/localise`, { method: "POST", body: { market: S.market } }); } catch (e) { toast(e.message, true); } }
+  $("audienceSel").onchange = async (e) => {
+    const m = e.target.value;
+    if (m === "viewer") { $("audienceSel").value = S.market; return openViewer(); }
+    S.market = m; S.viewer = null; renderPlayer(); setAudienceHelp();
+    if (S.market !== "world" && S.matchId) { try { await api(`/api/matches/${S.matchId}/localise`, { method: "POST", body: { market: S.market } }); } catch (err) { toast(err.message, true); } }
     if (S.selected) select(S.selected); else schedule();
-  }));
+  };
   document.querySelectorAll(".tab").forEach((b) => (b.onclick = () => {
     document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("on", x === b));
     S.tab = b.dataset.tab;

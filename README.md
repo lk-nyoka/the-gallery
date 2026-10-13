@@ -8,7 +8,9 @@ The Gallery is a newsroom of AI agents for live football coverage, with one rule
 
 > Built for **Inside the Game: Developer Hackathon** (Microsoft, October 2026). All data in this repository is synthetic: fictional clubs, fictional players.
 
-![The producer console during a synthetic match](docs/screenshots/gallery.png)
+![The live desk during a synthetic match](docs/screenshots/gallery.png)
+
+The console reads top to bottom: the **pipeline strip** says where every story is (events → agents draft → code checks → you approve → package), the **controls** each carry a one-line caption, **Who is on top** shows each team's attacking threat with goals and red cards marked and a plain-English summary of the last ten minutes, and **How it works** explains every control and mark.
 
 ---
 
@@ -190,7 +192,7 @@ cd backend && python -m gallery.mcp_server     # stdio; reads from the running a
 
 Tools: `list_matches`, `get_match_state`, `get_verified_storylines`, `get_storyline_provenance`, `get_coverage_gaps`, `get_readiness`, `get_corrections`, `get_player_card`. All read-only.
 
-**Try it:** press ▶ Play. Pick fixture B from *More sources* to see a correction and its impact; press **Red-team next 2** to watch the Verifier catch a false sentence and the Writer revise it; click **For you…** to switch to a casual-fan or analyst view, pick a club or follow a player; open the **Newsroom** tab for the trace.
+**Try it:** press ▶ Play. Pick fixture B from *Load another* to see a correction and its impact; press **Test tools → Plant 2 false sentences** to watch the Verifier catch a false sentence and the Writer revise it; click **Show stories for → A single fan…** to switch to a casual-fan or analyst view, pick a club or follow a player; open the **Newsroom** tab for the trace.
 
 ## Tests
 

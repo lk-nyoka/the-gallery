@@ -116,7 +116,7 @@ class MatchRuntime:
             "insights": self.insights,
             "storylines": list(self.storylines.values()),
             "rankings": {m: self.ranking(m) for m in self.markets},
-            "events": self.store.events(self.match_id)[-400:],
+            "events": self.store.events(self.match_id)[-4000:],
             "packages": self.packages,
             "funnel": self.funnel(),
             "replay": {"running": bool(self.replay_task and not self.replay_task.done()),

@@ -21,12 +21,12 @@ Run `run.bat` (Windows) or `python -m uvicorn gallery.app:app --port 8000` from 
 | Test | Steps | What you should see |
 |---|---|---|
 | **Turning point** (fixture A) | ▶ Play at 60× | After 63', *"The red card that turned the match"* ranks #1; hover a sentence for the SQL and events |
-| **Red-team** (fixture C) | *More sources* → Fixture C; press **Red-team next 2**; ▶ Play | Inspector → Agent trace: Verifier *blocked (v1)* → Writer *sent back* → Verifier *verified (v2)*. The card shows *v2 · revised* |
-| **Correction** (fixture B) | Fixture B at 10–20×; approve the 29' goal story as soon as it's verified | Two minutes of match time later the feed re-credits the goal: the card turns red, the Inspector offers **Review the correction**; approving it marks the old one *superseded* |
+| **Red-team** (fixture C) | *Load another* → Fixture C; press **Test tools → Plant 2 false sentences**; ▶ Play | Story details → How the agents made it: Verifier *blocked (v1)* → Writer *sent back* → Verifier *verified (v2)*. The card shows *v2 · revised* |
+| **Correction** (fixture B) | Fixture B at 10–20×; approve the 29' goal story as soon as it's verified | Two minutes of match time later the feed re-credits the goal: the card turns red, Story details offers **Review the correction**; approving it marks the old one *superseded* |
 | **Coverage** | Any fixture; press **Full-time** before approving anything | The package lists every goal, own goal and red card that has no approved story; the Desk trace says which drafts are waiting |
 | **Markets** | Switch to *Brazil · PT* or *SA · isiZulu* | The Localiser picks that market's top stories; with no model they stay in English and say so |
-| **Manual red-team** | Inspector → **Red-team: inject false claim** | A labelled false sentence is blocked with the reason |
-| **Viewer modes** | **For you…** → Casual fan or Analyst, pick a club, follow a player | Casual: headline, 1–2 verified sentences and an explainer. Analyst: every verified sentence plus its numbers (hover for SQL). Player focus: that player's stories first and a live player card |
+| **Manual red-team** | Story details → Test this story → **Plant a false sentence** | A labelled false sentence is blocked with the reason |
+| **Viewer modes** | **Show stories for → A single fan…** → Casual fan or Analyst, pick a club, follow a player | Casual: headline, 1–2 verified sentences and an explainer. Analyst: every verified sentence plus its numbers (hover for SQL). Player focus: that player's stories first and a live player card |
 | **Readiness** | Watch the bar above the queue; approve stories | The half-time / full-time score rises as stories are approved and gaps close; a correction drops it |
 | **Correction impact** | Fixture B, approve the 29' goal story | A red panel lists what the correction pulled: stories, graphics, drafts, localised versions, packages |
 | **Rights envelope** | Build a package | The package drawer shows markets, surfaces, expiry and approval state |
@@ -47,11 +47,11 @@ FOUNDRY_MODEL=qwen2.5-0.5b
 
 ## 4. Organiser data
 
-Drop the organisers' files into `backend/data/organiser/` and pick them from *More sources → Organiser data file*. See `backend/data/organiser/README.md` for the column mapping.
+Drop the organisers' files into `backend/data/organiser/` and pick them from *Load another → Organiser data file*. See `backend/data/organiser/README.md` for the column mapping.
 
 ## 5. Hand logger
 
-*More sources → Log a match by hand* creates an empty match you log with the keyboard (H / A for team, 1–9 for actions). Useful for a quick live check; anything that needs pass data is honestly reported as unavailable and blocked if claimed.
+*Load another → Log a match by hand* creates an empty match you log with the keyboard (H / A for team, 1–9 for actions). Useful for a quick live check; anything that needs pass data is honestly reported as unavailable and blocked if claimed.
 
 ## 6. Private validation (not for the repo or the video)
 

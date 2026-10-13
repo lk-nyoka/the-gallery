@@ -51,6 +51,7 @@
         if (attempt < 8) { banner("Waking up the demo. Free hosting sleeps when nobody is using it; this takes up to a minute…", "warn"); await new Promise((res) => setTimeout(res, 4000)); continue; }
       }
       if ($("netBanner") && !$("netBanner").classList.contains("hidden") && r.ok) banner("");
+      if (r.status === 404 && S.matchId && path.startsWith(`/api/matches/${S.matchId}`)) matchGone();
       if (!r.ok) { let msg = r.statusText; try { msg = (await r.json()).detail || msg; } catch (_) {} throw new Error(msg); }
       return r.json();
     }
@@ -97,11 +98,17 @@
     };
   }
 
+  function matchGone() {
+    if (S.recovering) return;
+    S.recovering = true; S.matchId = null;
+    banner("That match was cleared (the demo restarted or it sat idle). Opening a fresh one…", "warn");
+    loadMatches().then(() => banner("")).catch(() => {}).finally(() => { S.recovering = false; });
+  }
+
   function onMessage(msg) {
     switch (msg.type) {
       case "error":            // the match is gone (server restarted, or cleaned up after being idle)
-        S.matchId = null; banner("That match was cleared. Opening a fresh one…", "warn");
-        loadMatches().then(() => banner("")).catch(() => {});
+        matchGone();
         return;
       case "snapshot": {
         const s = msg.snapshot; S.snap = s;

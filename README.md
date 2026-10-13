@@ -6,6 +6,8 @@
 
 The Gallery is a newsroom of AI agents for live football coverage, with one rule none of them can break: **numbers come from code, words come from the model, and every word must point back to a number.** In practice: every factual claim is re-computed from the event data, and judgement wording is allowed only when it is flagged for a human to check. Agents commission, research, write, adapt and correct stories; deterministic code checks every claim; a human producer decides what goes on air; and each viewer gets the same verified facts shaped for them.
 
+**▶ Live demo: [the-gallery-dm6q.onrender.com](https://the-gallery-dm6q.onrender.com)** · no sign-up, your own sandbox. Free hosting: if it has been idle, the first load can take up to a minute.
+
 > Built for **Inside the Game: Developer Hackathon** (Microsoft, October 2026). All data in this repository is synthetic: fictional clubs, fictional players.
 
 ![The live desk during a synthetic match](docs/screenshots/gallery.png)
@@ -161,7 +163,7 @@ Models are swappable and never trusted with final factual approval: `MODEL_PROVI
 
 ## Live demo
 
-A public build runs the same code with synthetic data and the template writer. Every visitor gets their own sandbox, so your approvals never show up for anyone else.
+**[the-gallery-dm6q.onrender.com](https://the-gallery-dm6q.onrender.com)** runs the same code with synthetic data and the template writer. Every visitor gets their own sandbox, so your approvals never show up for anyone else.
 
 **Host your own (free):** the repository includes a `Dockerfile` and a Render blueprint (`render.yaml`). On [render.com](https://render.com), choose **New → Blueprint**, pick this repository and apply. Free instances sleep when idle; set the repository variable `DEMO_URL` and the *Keep demo awake* workflow pings it every 10 minutes. The same image runs on Azure App Service or Azure Container Apps (free tiers) with `PUBLIC_DEMO=1`.
 

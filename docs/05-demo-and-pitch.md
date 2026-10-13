@@ -32,6 +32,8 @@ Only show numbers from your own benchmark run on the recording day.
 
 **Name:** The Gallery
 
+**Live demo:** https://the-gallery-dm6q.onrender.com · **Code:** https://github.com/lk-nyoka/the-gallery
+
 **One line:** A verification-first AI newsroom for live football: agents commission, research, write and correct stories; deterministic code proves every claim; a human approves what airs.
 
 **What it does:**

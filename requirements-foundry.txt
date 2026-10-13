@@ -1,4 +1,4 @@
 # Optional: run the agents on a free local model with Microsoft Foundry Local (Windows).
 # Install with:  pip install -r requirements-foundry.txt
 foundry-local-sdk-winml
-openai>=1.40
+openai>=3.28.0

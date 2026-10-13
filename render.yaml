@@ -1,0 +1,13 @@
+# One-click free hosting on Render: New > Blueprint > pick this repository.
+services:
+  - type: web
+    name: the-gallery
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PUBLIC_DEMO
+        value: "1"
+      - key: MODEL_PROVIDER
+        value: template

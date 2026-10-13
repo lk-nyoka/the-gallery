@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+.env
+_to_delete
+backend/data/gallery.db
+backend/data/foundry_cache
+backend/data/espn
+backend/data/statsbomb
+docs/screenshots

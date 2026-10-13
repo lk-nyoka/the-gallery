@@ -52,6 +52,8 @@ def _independent(claim: dict, evs: list[dict]) -> Any:
         return by_id[p["event_id"]]["player"]
     if m == "shot_outcome":
         return by_id[p["event_id"]]["outcome"]
+    if m == "shot_speed":
+        return by_id[p["event_id"]]["speed"]
     if m == "possession_pct":
         ps = [e for e in evs if e["type"] == "pass" and p["from_t"] <= e["t"] <= p["to_t"]]
         return round(100 * sum(1 for e in ps if e["team_id"] == p["team_id"]) / len(ps)) if ps else None

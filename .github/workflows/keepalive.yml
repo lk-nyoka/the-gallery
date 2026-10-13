@@ -1,0 +1,13 @@
+# Free hosts put idle apps to sleep. If the repository variable DEMO_URL is set (Settings > Variables),
+# this pings the demo every 10 minutes so judges never wait for a cold start.
+name: Keep demo awake
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    if: ${{ vars.DEMO_URL != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -fsS --max-time 60 "${{ vars.DEMO_URL }}/api/health" || echo "demo is waking up"

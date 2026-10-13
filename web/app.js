@@ -17,14 +17,21 @@
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const fmtMs = (ms) => (ms == null ? "–" : ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(ms < 10000 ? 1 : 0)} s`);
   const fmt = (t) => { const m = Math.floor(t / 60), s = Math.floor(t % 60); return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`; };
-  const DET = { turning_point: "Turning point", red_card: "Red card", goal: "Goal", momentum_shift: "Momentum shift", counterattack: "Counterattack", goal_threat: "Pressure, no goal", standout: "Standout performer" };
+  const DET = { power_shot: "Power shot", turning_point: "Turning point", red_card: "Red card", goal: "Goal", momentum_shift: "Momentum shift", counterattack: "Counterattack", goal_threat: "Pressure, no goal", standout: "Standout performer" };
   const ICON = { verified: "✓", needs_human: "!", blocked: "✕" };
   const VLABEL = { verified: "Checked", needs_human: "Needs your eye", blocked: "Blocked" };
   const STATUS = { drafted: "Waiting for you", edited: "Edited, waiting", approved: "On air", rejected: "Rejected",
     needs_correction: "Facts changed", superseded: "Replaced" };
 
+  // one sandbox per browser on the public demo (the server ignores this when run locally)
+  const SESSION = (() => {
+    let id = null;
+    try { id = localStorage.getItem("gallery.session"); } catch (_) {}
+    if (!id) { id = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)); try { localStorage.setItem("gallery.session", id); } catch (_) {} }
+    return id;
+  })();
   async function api(path, opts = {}) {
-    const r = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts, body: opts.body ? JSON.stringify(opts.body) : undefined });
+    const r = await fetch(path, { headers: { "Content-Type": "application/json", "X-Gallery-Session": SESSION }, ...opts, body: opts.body ? JSON.stringify(opts.body) : undefined });
     if (!r.ok) { let msg = r.statusText; try { msg = (await r.json()).detail || msg; } catch (_) {} throw new Error(msg); }
     return r.json();
   }
@@ -210,7 +217,7 @@
     $("eventCount").textContent = `${key.length} key${passes ? ` · ${passes} passes` : ""}`;
     const label = (e) => {
       const who = e.player ? ` · ${e.player}` : "";
-      if (e.type === "shot") return (e.outcome === "goal" ? "GOAL" : `Shot (${e.outcome.replace("_", " ")})`) + who;
+      if (e.type === "shot") return (e.outcome === "goal" ? "GOAL" : `Shot (${e.outcome.replace("_", " ")})`) + who + (e.speed ? ` · ${Math.round(e.speed)} km/h` : "");
       if (e.type === "own_goal") return "OWN GOAL" + who;
       if (e.type === "card") return (e.outcome === "red" ? "RED CARD" : "Yellow card") + who;
       if (e.type === "key_pass") return "Chance created" + who;
@@ -317,6 +324,52 @@
   }
   $("momentum").addEventListener("mousemove", chartHover);
   $("momentum").addEventListener("mouseleave", () => $("momentumTip").classList.add("hidden"));
+
+  // ------------------------------------------------------------------ on-screen preview (overlay feed)
+  const OV = { seen: new Set(), queue: [], showing: null, lastStory: null, until: 0, feed: null, match: null };
+  const code3 = (n) => (n || "").replace(/[^A-Za-z ]/g, "").split(" ")[0].slice(0, 3).toUpperCase();
+  async function pollOverlays() {
+    try {
+      if (S.matchId) {
+        if (OV.match !== S.matchId) Object.assign(OV, { seen: new Set(), queue: [], showing: null, lastStory: null, until: 0, match: S.matchId });
+        const market = S.market === "viewer" ? (S.viewer?.base_market || "world") : S.market;
+        const fd = await api(`/api/matches/${S.matchId}/overlays?market=${market}`); OV.feed = fd;
+        const now = S.snap?.now_t ?? 0;
+        const fresh = fd.cues.filter((c) => c.start_t <= now + 0.5 && !OV.seen.has(c.cue_id));
+        fresh.forEach((c) => OV.seen.add(c.cue_id));
+        const stories = fresh.filter((c) => c.kind === "story"), tags = fresh.filter((c) => c.kind === "player_tag").slice(-2);
+        OV.queue.push(...stories, ...tags);
+      }
+    } catch (_) {}
+    setTimeout(pollOverlays, 1500);
+  }
+  function tickOverlay() {
+    if (!S.snap) return;
+    const n = S.snap.names || {};
+    $("fbHome").textContent = code3(n.HOME); $("fbAway").textContent = code3(n.AWAY);
+    $("fbScore").textContent = `${S.snap.score.HOME}–${S.snap.score.AWAY}`; $("fbClock").textContent = fmt(nowT());
+    const t = Date.now();
+    if (t >= OV.until && OV.queue.length) {
+      const c = OV.queue.shift(); OV.showing = c; OV.until = t + (c.kind === "story" ? Math.min(7, c.duration_s) : 3) * 1000;
+      if (c.kind === "story") OV.lastStory = c;
+    } else if (t >= OV.until) OV.showing = null;
+    const cur = OV.showing;
+    const tag = cur && cur.kind === "player_tag" ? cur : null;
+    $("fTag").classList.toggle("hidden", !tag);
+    if (tag) { $("fTag").querySelector(".ptag-name").textContent = tag.player; $("fTag").querySelector(".ptag-val").textContent = tag.fields.value; }
+    const story = cur && cur.kind === "story" ? cur : OV.lastStory;
+    $("fL3").classList.toggle("hidden", !story); $("fL3").classList.toggle("stale", !!story && story !== cur);
+    $("fEmpty").classList.toggle("hidden", !!story);
+    if (story) {
+      $("fL3").querySelector(".l3-team").style.background = story.team_id === "HOME" ? "var(--home)" : "var(--away)";
+      $("fL3").querySelector(".l3-head").textContent = story.headline;
+      $("fL3").querySelector(".l3-sub").textContent = story.text.split(/(?<=\.)\s/)[0] || "";
+    }
+  }
+  setInterval(tickOverlay, 300);
+  $("copyOverlay").onclick = async () => {
+    try { await navigator.clipboard.writeText(JSON.stringify(OV.feed || {}, null, 2)); toast("Overlay feed copied"); } catch (_) { toast("Copy failed", true); }
+  };
 
   // ------------------------------------------------------------------ pipeline strip
   function renderPipe() {
@@ -976,4 +1029,5 @@
   loadMatches();
   pollProvider();
   pollReadiness();
+  pollOverlays();
 })();

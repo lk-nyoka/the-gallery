@@ -46,7 +46,7 @@ OUTCOME_TEXT = {"goal": "ended in a goal", "on_target": "forced a save", "off_ta
 GRAPHIC = {
     "goal": "goal_card", "counterattack": "sequence_timeline", "momentum_shift": "momentum_chart",
     "standout": "player_card", "goal_threat": "chance_timeline", "red_card": "card_alert",
-    "turning_point": "before_after_split",
+    "turning_point": "before_after_split", "power_shot": "speed_tag",
 }
 
 
@@ -67,6 +67,8 @@ def graphic_spec(ins: dict, names: dict) -> dict:
         fields.update(shots=m["shots"], on_target=m["on_target"], xg=m.get("xg"))
     elif ins["detector"] == "red_card":
         fields.update(player=(ins["players"] or ["?"])[0], score=f"{m['score_team']}-{m['score_opp']}")
+    elif ins["detector"] == "power_shot":
+        fields.update(player=(ins["players"] or ["?"])[0], speed_kmh=m["speed"], outcome=m["outcome"])
     elif ins["detector"] == "turning_point":
         fields.update(red_card_minute=m.get("red_minute"), sent_off=(ins["players"] or ["?"])[0],
                       before={"down_shots": m["down_shots_before"], "up_shots": m["up_shots_before"]},
@@ -82,7 +84,7 @@ def clip_cue(ins: dict) -> dict:
         m = (ins["metrics"].get("red_minute") or ins["minute"])
         return {"from": f"{max(m - 1, 0):02d}:00", "to": f"{m:02d}:59",
                 "label": f"Red card, {m}' (then the goals that followed)"}
-    if ins["detector"] in ("goal", "counterattack", "red_card"):
+    if ins["detector"] in ("goal", "counterattack", "red_card", "power_shot"):
         a, b = ins["from_t"] - 5 - off, ins["to_t"] + 8 - off
     else:
         a, b = max(0, ins["to_t"] - 120 - off), ins["to_t"] - off
@@ -196,6 +198,12 @@ class TemplateWriter:
             if m.get("at_full_time"):
                 segs.append(_seg(f"{down} managed {_n(f['down_shots_after']['value'], 'shot', 'shots')} with a player fewer.",
                                  f["down_shots_after"]))
+        elif d == "power_shot":
+            p = f["shooter"]["value"]
+            sp = f["shot_speed"]["value"]
+            headline = f"{p} lets fly at {sp:g} km/h"
+            segs.append(_seg(f"{p}'s shot left the boot at {sp:g} km/h.", f["shooter"], f["shot_speed"]))
+            segs.append(_seg(f"The shot {OUTCOME_TEXT.get(f['shot_outcome']['value'], 'was taken')}.", f["shot_outcome"]))
         else:
             headline = d
         return {"headline": headline, "segments": segs, "graphic": graphic_spec(ins, names),

@@ -1,5 +1,5 @@
 {
-  "run_at": "2026-10-12 22:05:14",
+  "run_at": "2026-10-13 13:50:00",
   "real_matches": [],
   "recent_matches": [],
   "seeds": [
@@ -70,25 +70,25 @@
       },
       "corrections": [],
       "latency_ms": [
-        4.1,
-        5.4,
-        3.9,
-        5.0,
-        5.9,
-        4.2,
-        4.5,
-        7.1,
-        7.5,
-        8.1,
-        16.7,
-        19.1,
-        4.1,
-        5.3
+        6.4,
+        6.0,
+        6.5,
+        5.7,
+        7.2,
+        6.0,
+        6.1,
+        4.9,
+        6.0,
+        6.3,
+        18.3,
+        20.4,
+        5.5,
+        8.5
       ],
-      "package_ms": 3.34,
+      "package_ms": 2.86,
       "package_items": 14,
       "funnel": {
-        "insights": 16,
+        "insights": 17,
         "storylines": 14,
         "verified": 14,
         "flagged": 0,
@@ -100,12 +100,12 @@
       "agents": {
         "Analyst": 56,
         "Desk": 2,
-        "Editor-in-Chief": 16,
+        "Editor-in-Chief": 17,
         "Producer": 28,
         "Verifier": 14,
         "Writer": 14
       },
-      "held_by_editor": 2,
+      "held_by_editor": 3,
       "revisions": 0
     },
     {
@@ -144,7 +144,7 @@
       "missing": [],
       "turning_points": 0,
       "expected_turning_points": 0,
-      "claims_rechecked": 45,
+      "claims_rechecked": 48,
       "escapes": 0,
       "red_team": {
         "drafts": 0,
@@ -162,45 +162,46 @@
         }
       ],
       "latency_ms": [
-        4.7,
-        5.5,
-        5.8,
-        3.7,
+        6.1,
         4.8,
+        7.8,
+        6.7,
+        5.7,
         5.1,
-        4.4,
-        4.3,
-        4.0,
-        4.1,
-        3.6,
-        5.0,
-        5.0,
-        4.0,
-        4.6
+        6.9,
+        6.3,
+        6.9,
+        5.5,
+        8.6,
+        3.9,
+        4.5,
+        4.5,
+        3.7,
+        9.4
       ],
-      "package_ms": 2.27,
-      "package_items": 14,
+      "package_ms": 4.31,
+      "package_items": 15,
       "funnel": {
-        "insights": 15,
-        "storylines": 15,
-        "verified": 14,
+        "insights": 17,
+        "storylines": 16,
+        "verified": 15,
         "flagged": 0,
         "blocked": 1,
-        "approved": 14,
+        "approved": 15,
         "needs_correction": 0,
         "rejected": 0
       },
       "agents": {
-        "Analyst": 60,
+        "Analyst": 64,
         "Corrections": 2,
         "Desk": 2,
-        "Editor-in-Chief": 15,
+        "Editor-in-Chief": 17,
         "Feed": 1,
-        "Producer": 30,
-        "Verifier": 15,
-        "Writer": 15
+        "Producer": 32,
+        "Verifier": 16,
+        "Writer": 16
       },
-      "held_by_editor": 1,
+      "held_by_editor": 2,
       "revisions": 0
     },
     {
@@ -243,24 +244,24 @@
       },
       "corrections": [],
       "latency_ms": [
-        14.1,
-        15.1,
-        6.5,
-        5.2,
-        5.1,
-        5.5,
-        4.1,
-        3.3,
-        5.7,
-        8.9,
-        10.3,
-        6.8,
-        9.5
+        29.6,
+        31.5,
+        9.4,
+        8.3,
+        8.1,
+        7.2,
+        8.1,
+        4.0,
+        9.8,
+        16.1,
+        18.5,
+        7.9,
+        11.6
       ],
-      "package_ms": 3.48,
+      "package_ms": 2.3,
       "package_items": 13,
       "funnel": {
-        "insights": 15,
+        "insights": 16,
         "storylines": 13,
         "verified": 13,
         "flagged": 0,
@@ -272,12 +273,12 @@
       "agents": {
         "Analyst": 52,
         "Desk": 2,
-        "Editor-in-Chief": 15,
+        "Editor-in-Chief": 16,
         "Producer": 26,
         "Verifier": 15,
         "Writer": 17
       },
-      "held_by_editor": 2,
+      "held_by_editor": 3,
       "revisions": 2
     }
   ],
@@ -291,8 +292,8 @@
       "right_team": 7
     },
     "claim_verdict_accuracy": {
-      "correct": 398,
-      "total": 398
+      "correct": 411,
+      "total": 411
     },
     "false_claim_block_rate": {
       "caught": 37,
@@ -300,7 +301,7 @@
     },
     "unsupported_claim_escape_rate": {
       "escapes": 0,
-      "verified_claims": 361
+      "verified_claims": 374
     },
     "coverage_rate": {
       "covered": 12,
@@ -316,8 +317,8 @@
       "caught_on_first_draft": 2,
       "revised_to_verified": 2
     },
-    "median_time_to_verified_storyline_ms": 51.7,
-    "median_time_to_package_ms": 3.34,
+    "median_time_to_verified_storyline_ms": 55.4,
+    "median_time_to_package_ms": 2.86,
     "turning_points": {
       "found": 2,
       "expected": 2
@@ -446,19 +447,19 @@
     ]
   },
   "verified_claims": {
-    "rechecked_independently": 361,
+    "rechecked_independently": 374,
     "escapes": 0,
     "escape_rate": 0.0
   },
   "latency": {
-    "median_storyline_ms": 51.7,
-    "p95_storyline_ms": 97.8,
-    "median_package_ms": 1.13
+    "median_storyline_ms": 55.4,
+    "p95_storyline_ms": 130.4,
+    "median_package_ms": 1.91
   },
   "funnel": {
-    "insights": 70,
-    "storylines": 65,
-    "verified": 30,
+    "insights": 76,
+    "storylines": 69,
+    "verified": 34,
     "flagged": 5,
     "blocked": 30,
     "approved": 0,
@@ -585,23 +586,23 @@
         }
       ],
       "latency_ms": [
-        63.8,
-        65.1,
-        66.4,
-        67.3,
+        60.0,
+        61.3,
+        62.2,
+        63.1,
+        64.1,
+        65.0,
+        66.3,
+        67.4,
         68.2,
-        69.1,
-        70.2,
-        67.9,
-        68.0,
-        69.1,
-        70.4,
-        71.4,
-        72.4,
-        73.2,
-        74.0
+        69.5,
+        70.6,
+        71.7,
+        72.9,
+        74.0,
+        74.8
       ],
-      "package_ms": 1.13,
+      "package_ms": 1.22,
       "funnel": {
         "insights": 16,
         "storylines": 15,
@@ -625,7 +626,7 @@
           "event_id": null,
           "label": null,
           "detected": true,
-          "insight_id": "bench2-i0025",
+          "insight_id": "bench2-i0026",
           "detected_minute": 62
         },
         {
@@ -649,7 +650,7 @@
           "event_id": null,
           "label": null,
           "detected": true,
-          "insight_id": "bench2-i0024",
+          "insight_id": "bench2-i0025",
           "detected_minute": 62
         },
         {
@@ -661,7 +662,7 @@
           "event_id": null,
           "label": null,
           "detected": true,
-          "insight_id": "bench2-i0027",
+          "insight_id": "bench2-i0028",
           "detected_minute": 79
         },
         {
@@ -678,7 +679,7 @@
         }
       ],
       "extra_detections": 5,
-      "verified_claims_rechecked": 38,
+      "verified_claims_rechecked": 41,
       "escapes": 0,
       "false_claims": [
         {
@@ -704,14 +705,14 @@
         },
         {
           "kind": "number_mismatch",
-          "text": "That figure is 102.",
+          "text": "That figure is 118.2.",
           "verdict": "blocked",
-          "reason": "The sentence says 102, but none of its claims supports that number.",
+          "reason": "The sentence says 118.2, but none of its claims supports that number.",
           "caught": true
         },
         {
           "kind": "unclaimed",
-          "text": "Northbridge FC have been the better side all afternoon.",
+          "text": "Riverside Athletic have been the better side all afternoon.",
           "verdict": "blocked",
           "reason": "No claim attached: every factual sentence must carry a checkable claim.",
           "caught": true
@@ -732,23 +733,24 @@
         }
       ],
       "latency_ms": [
-        45.6,
-        47.0,
-        48.7,
-        51.5,
-        54.1,
-        56.4,
-        58.6,
-        60.6,
-        62.5,
-        64.3,
-        66.2
+        43.4,
+        44.9,
+        45.7,
+        46.9,
+        47.8,
+        48.8,
+        49.9,
+        50.8,
+        51.8,
+        52.6,
+        53.6,
+        54.5
       ],
-      "package_ms": 1.22,
+      "package_ms": 1.25,
       "funnel": {
-        "insights": 13,
-        "storylines": 11,
-        "verified": 4,
+        "insights": 14,
+        "storylines": 12,
+        "verified": 5,
         "flagged": 1,
         "blocked": 6,
         "approved": 0,
@@ -780,7 +782,7 @@
           "event_id": null,
           "label": null,
           "detected": true,
-          "insight_id": "bench3-i0033",
+          "insight_id": "bench3-i0034",
           "detected_minute": 24
         },
         {
@@ -792,7 +794,7 @@
           "event_id": null,
           "label": null,
           "detected": true,
-          "insight_id": "bench3-i0040",
+          "insight_id": "bench3-i0042",
           "detected_minute": 62
         },
         {
@@ -804,7 +806,7 @@
           "event_id": null,
           "label": null,
           "detected": true,
-          "insight_id": "bench3-i0043",
+          "insight_id": "bench3-i0046",
           "detected_minute": 79
         },
         {
@@ -816,12 +818,12 @@
           "event_id": null,
           "label": null,
           "detected": true,
-          "insight_id": "bench3-i0037",
+          "insight_id": "bench3-i0038",
           "detected_minute": 44
         }
       ],
       "extra_detections": 6,
-      "verified_claims_rechecked": 46,
+      "verified_claims_rechecked": 49,
       "escapes": 0,
       "false_claims": [
         {
@@ -875,26 +877,27 @@
         }
       ],
       "latency_ms": [
-        83.2,
-        85.9,
-        88.0,
-        90.0,
-        92.3,
-        94.8,
-        97.0,
-        97.8,
-        98.6,
-        99.1,
-        100.0,
-        100.7,
-        101.3,
-        102.0
+        110.8,
+        113.9,
+        116.0,
+        118.2,
+        120.4,
+        123.0,
+        125.2,
+        127.4,
+        130.4,
+        133.0,
+        135.8,
+        138.3,
+        141.0,
+        143.8,
+        146.7
       ],
-      "package_ms": 1.22,
+      "package_ms": 2.58,
       "funnel": {
-        "insights": 16,
-        "storylines": 14,
-        "verified": 7,
+        "insights": 18,
+        "storylines": 15,
+        "verified": 8,
         "flagged": 1,
         "blocked": 6,
         "approved": 0,
@@ -926,7 +929,7 @@
           "event_id": null,
           "label": null,
           "detected": true,
-          "insight_id": "bench4-i0047",
+          "insight_id": "bench4-i0050",
           "detected_minute": 24
         },
         {
@@ -938,7 +941,7 @@
           "event_id": null,
           "label": null,
           "detected": true,
-          "insight_id": "bench4-i0053",
+          "insight_id": "bench4-i0057",
           "detected_minute": 62
         },
         {
@@ -950,7 +953,7 @@
           "event_id": null,
           "label": null,
           "detected": true,
-          "insight_id": "bench4-i0055",
+          "insight_id": "bench4-i0059",
           "detected_minute": 79
         },
         {
@@ -962,12 +965,12 @@
           "event_id": null,
           "label": null,
           "detected": true,
-          "insight_id": "bench4-i0050",
+          "insight_id": "bench4-i0053",
           "detected_minute": 39
         }
       ],
       "extra_detections": 5,
-      "verified_claims_rechecked": 42,
+      "verified_claims_rechecked": 40,
       "escapes": 0,
       "false_claims": [
         {
@@ -1021,22 +1024,22 @@
         }
       ],
       "latency_ms": [
-        49.4,
-        51.3,
-        52.7,
-        54.2,
-        55.6,
-        56.5,
-        57.6,
-        58.8,
-        60.6,
-        61.8,
-        63.7,
-        65.2
+        54.3,
+        56.3,
+        58.4,
+        60.7,
+        62.3,
+        63.9,
+        65.4,
+        66.4,
+        67.4,
+        68.8,
+        70.0,
+        71.6
       ],
-      "package_ms": 1.08,
+      "package_ms": 2.06,
       "funnel": {
-        "insights": 12,
+        "insights": 13,
         "storylines": 12,
         "verified": 5,
         "flagged": 1,
@@ -1058,7 +1061,7 @@
           "event_id": null,
           "label": null,
           "detected": true,
-          "insight_id": "bench5-i0064",
+          "insight_id": "bench5-i0070",
           "detected_minute": 59
         },
         {
@@ -1070,7 +1073,7 @@
           "event_id": null,
           "label": null,
           "detected": true,
-          "insight_id": "bench5-i0060",
+          "insight_id": "bench5-i0065",
           "detected_minute": 24
         },
         {
@@ -1082,7 +1085,7 @@
           "event_id": null,
           "label": null,
           "detected": true,
-          "insight_id": "bench5-i0067",
+          "insight_id": "bench5-i0073",
           "detected_minute": 62
         },
         {
@@ -1094,7 +1097,7 @@
           "event_id": null,
           "label": null,
           "detected": true,
-          "insight_id": "bench5-i0069",
+          "insight_id": "bench5-i0075",
           "detected_minute": 79
         },
         {
@@ -1106,12 +1109,12 @@
           "event_id": null,
           "label": null,
           "detected": true,
-          "insight_id": "bench5-i0063",
+          "insight_id": "bench5-i0069",
           "detected_minute": 39
         }
       ],
       "extra_detections": 2,
-      "verified_claims_rechecked": 43,
+      "verified_claims_rechecked": 49,
       "escapes": 0,
       "false_claims": [
         {
@@ -1123,23 +1126,23 @@
         },
         {
           "kind": "unsupported_state",
-          "text": "Ivanov looks exhausted and has lost confidence.",
+          "text": "Adeyemi looks exhausted and has lost confidence.",
           "verdict": "blocked",
           "reason": "Refers to a state the data can't contain ('exhausted'). Event data records actions, not feelings or fitness.",
           "caught": true
         },
         {
           "kind": "wrong_number",
-          "text": "The data shows 7 for shots here.",
+          "text": "The data shows 13 for seconds here.",
           "verdict": "blocked",
-          "reason": "Claim says == 7; the data says 4.",
+          "reason": "Claim says == 13; the data says 10.0.",
           "caught": true
         },
         {
           "kind": "number_mismatch",
-          "text": "That figure is 80.",
+          "text": "That figure is 8.42.",
           "verdict": "blocked",
-          "reason": "The sentence says 80, but none of its claims supports that number.",
+          "reason": "The sentence says 8.42, but none of its claims supports that number.",
           "caught": true
         },
         {
@@ -1151,7 +1154,7 @@
         },
         {
           "kind": "judgement_wording",
-          "text": "Northbridge FC were relentless here.",
+          "text": "Riverside Athletic were relentless here.",
           "verdict": "needs_human",
           "reason": "Numbers check out, but 'relentless\u2026' is a judgement. A producer should confirm the wording.",
           "caught": true
@@ -1165,25 +1168,27 @@
         }
       ],
       "latency_ms": [
-        46.0,
-        47.2,
-        48.1,
-        49.4,
-        50.4,
-        51.7,
-        54.2,
-        56.6,
-        58.4,
-        59.9,
-        61.4,
-        63.2,
-        64.4
+        80.4,
+        82.4,
+        84.0,
+        85.0,
+        86.4,
+        88.5,
+        90.0,
+        92.2,
+        93.9,
+        95.9,
+        97.8,
+        99.0,
+        100.5,
+        101.8,
+        104.1
       ],
-      "package_ms": 1.03,
+      "package_ms": 1.91,
       "funnel": {
-        "insights": 13,
-        "storylines": 13,
-        "verified": 6,
+        "insights": 15,
+        "storylines": 15,
+        "verified": 8,
         "flagged": 1,
         "blocked": 6,
         "approved": 0,
@@ -1192,5 +1197,5 @@
       }
     }
   ],
-  "duration_s": 3.8
+  "duration_s": 5.02
 }

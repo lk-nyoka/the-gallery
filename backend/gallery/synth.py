@@ -8,6 +8,7 @@ detection can be measured instead of asserted.
 from __future__ import annotations
 
 import random
+import zlib
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -20,6 +21,20 @@ AWAY_ROSTER = ["Ndlovu", "Carvalho", "Price", "Ivanov", "Bakari", "Torres", "Hol
                "Dube", "Ferreira", "Walsh", "Kimura"]
 
 HALF = 2700.0
+
+
+def ball_speed(e: Event) -> Optional[float]:
+    """Synthetic ball speed in km/h for passes and shots. Seeded by the event id (not the match RNG), so adding
+    speeds never changes the rest of a generated match."""
+    if e.type not in (ev.PASS, ev.SHOT):
+        return None
+    r = random.Random(zlib.crc32(e.event_id.encode()))
+    if e.type == ev.PASS:
+        length = ev.pass_length_m(e.x, e.y, e.end_x, e.end_y) or 15.0
+        return round(max(20.0, min(110.0, 28 + length * 1.15 + r.uniform(-6, 6))), 1)
+    x, y = (e.x if e.x is not None else 85.0), (e.y if e.y is not None else 50.0)
+    dist_m = (((100 - x) * 1.05) ** 2 + ((50 - y) * 0.68) ** 2) ** 0.5
+    return round(max(45.0, min(124.0, 118 - dist_m * 1.6 + r.uniform(-14, 9))), 1)
 
 
 @dataclass
@@ -94,6 +109,7 @@ class _Sim:
             end_x=None if end_x is None else round(end_x, 1), end_y=None if end_y is None else round(end_y, 1),
             xg=xg, source="synthetic",
         )
+        e.speed = ball_speed(e)
         self.m.events.append(e)
         return e
 

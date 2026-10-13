@@ -43,9 +43,9 @@ The challenge asks for one pipeline with five stages. Each maps to a part of The
 | Stage | The Gallery |
 |---|---|
 | **Ingest** synthetic events as they happen | Replay or live feed of passes, shots, regains, box entries, cards, corners, fouls; file adapter for the organisers' data |
-| **Interpret** into statistics and patterns | Deterministic detectors: momentum shifts, counterattacks, standout players, pressure without a goal, goals, red cards, turning points |
+| **Interpret** into statistics and patterns | Deterministic detectors: momentum shifts, counterattacks, standout players, pressure without a goal, power shots, goals, red cards, turning points; pass quality (distance, accuracy, a 0–10 difficulty rating) and ball and shot speed as checkable metrics |
 | **Explain** why a moment matters | Turning points (before vs after), threat-share swings, "Why not?" for every story that lost, evidence on hover |
-| **Render** for the screen | Graphics payload, lower-third preview, clip cues, half-time and full-time packages with a rights envelope |
+| **Render** for the screen | A timed, machine-readable overlay feed (approved stories as lower thirds, plus automatic player tags for shot speed and pass length) with a live on-screen preview, clip cues, and half-time / full-time packages with a rights envelope |
 | **Personalise** | Casual fan vs analyst, favourite club, player-focus mode with a live player card, and market editions (EN · PT-BR · isiZulu) |
 
 Plus **data innovation** (fixtures with planted patterns and truth files) and **multi-language storytelling** (Localiser agent, re-verified).
@@ -61,6 +61,8 @@ Plus **data innovation** (fixtures with planted patterns and truth files) and **
 | **Explains its choices** | Ranking is a visible formula. "Why not?" says why other stories lost. Every agent step is in a trace. |
 | **Adapts by market** | Brazil (PT-BR) leads with attacking momentum, South Africa (isiZulu) with players; the lead story changes, not just the language. |
 | **Personalises for each viewer** | *Casual fan*: the headline, the plainest verified sentences and a short explainer. *Analyst*: every verified sentence plus the numbers behind it. A favourite club or player re-orders the stories; player focus adds a live player card whose numbers come from the verifier's own SQL. |
+| **Puts it on screen** | An overlay feed a graphics engine can read: only approved stories become lower thirds; name tags fire on their own when a shot passes 100 km/h or a completed pass passes 40 m. The console previews it live. |
+| **Measures pass quality and speed** | Pass distance, accuracy and difficulty, ball and shot speed: each a verifier metric with its own SQL, shown on the analyst view and the player card. |
 | **Knows when it's ready** | A half-time / full-time readiness score: approved stories, coverage, outstanding corrections, markets. |
 
 | Casual fan, supporting the away side and following one player | Analyst view of the same match |
@@ -105,6 +107,7 @@ Every step is written to an **agent trace** (blue: action · green: verified/app
 - **Every number in the text must match a claim**, and every claim must match the data (counts, time between events, passes in a move, possession share, threat share, score, scorer, shot outcome, xG, team stats).
 - **Unsupported states are blocked**: fatigue, morale, intent, emotion. Event data records actions, not feelings.
 - **Template leftovers are blocked** (`{team}`, `[[PLAYER]]`).
+- **Editorial policy**: inflammatory, speculative or betting language ("robbed", "bottled", "odds") always needs a producer.
 - **Judgement and causal wording** ("dominant", "brilliant", "led to", "because") with true numbers is flagged for a human tick.
 - **The sentence must state what it claims.** True claims stapled to unrelated wording ("they regained possession after losing the ball") are flagged, not verified.
 - **Feeds declare what they can't show** (e.g. no pass data), and The Gallery never claims it.
@@ -115,14 +118,14 @@ Reproducible with `python -m gallery.benchmark` (deterministic template writer, 
 
 | Measure | Result |
 |---|---|
-| Unsupported claims that got through | **0** of 361 verified claims, each re-computed by separate Python code |
+| Unsupported claims that got through | **0** of 374 verified claims, each re-computed by separate Python code |
 | Planted false claims stopped | **37 / 37** (incl. 2 red-team Writer drafts, both revised to verified) |
-| Verifier verdict accuracy | **398 / 398** |
+| Verifier verdict accuracy | **411 / 411** |
 | Key moments covered (goals, own goals, red cards) | **12 / 12** across fixtures A–C |
 | Data corrections caught | **1 / 1**, replacement verified |
 | Planted patterns found | **29 / 32** (momentum shifts: 6/9, see below) |
 | Turning points found | **2 / 2** |
-| Event → verified story | ~50 ms median · package build ~3 ms |
+| Event → verified story | ~60 ms median · package build ~3 ms |
 
 Momentum detection is tuned for precision over recall: every detection inside a planted window was credited to the right team (7/7), at the cost of missing 3 of 9 planted momentum spells. A studio can't act on unstable momentum alerts; raising recall without losing that precision is future work.
 
@@ -155,6 +158,12 @@ Momentum detection is tuned for precision over recall: every detection inside a 
 | Vanilla JS (no build step) | Producer console |
 
 Models are swappable and never trusted with final factual approval: `MODEL_PROVIDER=template | foundry_local | azure_openai | openai_compatible`. Any model failure falls back to the deterministic template writer, and verification is identical either way.
+
+## Live demo
+
+A public build runs the same code with synthetic data and the template writer. Every visitor gets their own sandbox, so your approvals never show up for anyone else.
+
+**Host your own (free):** the repository includes a `Dockerfile` and a Render blueprint (`render.yaml`). On [render.com](https://render.com), choose **New → Blueprint**, pick this repository and apply. Free instances sleep when idle; set the repository variable `DEMO_URL` and the *Keep demo awake* workflow pings it every 10 minutes. The same image runs on Azure App Service or Azure Container Apps (free tiers) with `PUBLIC_DEMO=1`.
 
 ## Run it
 
@@ -199,7 +208,7 @@ Tools: `list_matches`, `get_match_state`, `get_verified_storylines`, `get_storyl
 ```bash
 pip install -r requirements-dev.txt
 ruff check backend
-pytest -q                          # 53 tests: detectors, verifier, every agent, the workflow, personalisation, MCP
+pytest -q                          # 59 tests: detectors, verifier, every agent, the workflow, personalisation, MCP
 cd backend && python -m gallery.benchmark --quick
 ```
 
@@ -219,6 +228,8 @@ cd backend && python -m gallery.benchmark --quick
 - A headline number is checked against the story's claims, not against its meaning: "4 shots" and "4 goals" both pass if 4 is a claimed value. Wording that changes the meaning of a true number is caught by the human approval step.
 - The rights envelope uses a default policy per market; a real deployment would load it per rights holder and territory.
 - The event model has no tracking data, so off-ball claims are out of scope by design.
+- Ball and shot speeds in the fixtures are synthetic (seeded per event); a real feed would supply them, and the same metrics apply.
+- The public demo keeps matches in memory per visitor (three each, forty in total) and resets when the host restarts.
 
 ## Responsible AI
 

@@ -19,7 +19,7 @@ DEFAULT_MARKETS: dict[str, dict[str, Any]] = {
         "focus_players": ["Santos", "Duarte", "Carvalho", "Ferreira"], "focus_teams": [], "base_relevance": 0.4,
         "depth": "broadcast", "graphic_emphasis": "player_card",
         "angle": "attacking momentum and chance creation",
-        "detector_boost": {"goal_threat": 0.3, "counterattack": 0.3, "momentum_shift": 0.2},
+        "detector_boost": {"goal_threat": 0.3, "counterattack": 0.3, "momentum_shift": 0.2, "power_shot": 0.3},
         "notes": "Brazilian broadcast: lead with players Brazilian viewers follow; Brazilian football "
                  "terminology; energetic but factual.",
     },

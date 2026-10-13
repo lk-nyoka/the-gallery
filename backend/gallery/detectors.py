@@ -139,6 +139,9 @@ class DetectorSuite:
             th = self.goal_threat(e)
             if th:
                 out.append(th)
+            ps = self.power_shot(e)
+            if ps:
+                out.append(ps)
         if e["type"] in (ev.SHOT, ev.BOX_ENTRY, ev.REGAIN, ev.KEY_PASS) and e.get("player"):
             s = self.standout(e)
             if s:
@@ -342,6 +345,26 @@ class DetectorSuite:
                          evidence=[x["event_id"] for x in shots], confidence=round(conf, 2), facts=facts)
 
     # ------------------------------------------------------------------ red cards and turning points
+    POWER_SHOT_KMH = 110.0
+
+    def power_shot(self, e: dict) -> Optional[Insight]:
+        """Speed tag: a shot struck at or above the threshold (feeds with ball speed only)."""
+        sp = e.get("speed")
+        if sp is None or sp < self.POWER_SHOT_KMH or not e.get("player"):
+            return None
+        if not self._cool(("power_shot", e["team_id"]), e["t"], 300):
+            return None
+        self.last_fired[("power_shot", e["team_id"])] = e["t"]
+        facts = [
+            _fact("shooter", "attribution", {"event_id": e["event_id"]}, e["player"]),
+            _fact("shot_speed", "shot_speed", {"event_id": e["event_id"]}, round(sp, 1)),
+            _fact("shot_outcome", "shot_outcome", {"event_id": e["event_id"]}, e["outcome"]),
+        ]
+        return self._new(detector="power_shot", t=e["t"], from_t=e["t"], to_t=e["t"], team_id=e["team_id"],
+                         players=[e["player"]], metrics={"speed": round(sp, 1), "outcome": e["outcome"],
+                                                         "threshold": self.POWER_SHOT_KMH},
+                         evidence=[e["event_id"]], confidence=1.0, facts=facts)
+
     def red_card(self, e: dict) -> Insight:
         team = e["team_id"]
         self.reds.append(e)

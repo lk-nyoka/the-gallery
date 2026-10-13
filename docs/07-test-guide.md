@@ -7,7 +7,7 @@ Everything here runs on synthetic data: fictional clubs and players with known a
 ```bash
 pip install -r requirements.txt -r requirements-dev.txt
 ruff check backend
-pytest -q                                   # 53 tests
+pytest -q                                   # 59 tests
 cd backend && python -m gallery.benchmark   # full benchmark, writes benchmark_results.json
 python -m gallery.benchmark --quick         # the CI smoke test
 ```
@@ -30,6 +30,9 @@ Run `run.bat` (Windows) or `python -m uvicorn gallery.app:app --port 8000` from 
 | **Readiness** | Watch the bar above the queue; approve stories | The half-time / full-time score rises as stories are approved and gaps close; a correction drops it |
 | **Correction impact** | Fixture B, approve the 29' goal story | A red panel lists what the correction pulled: stories, graphics, drafts, localised versions, packages |
 | **Rights envelope** | Build a package | The package drawer shows markets, surfaces, expiry and approval state |
+| **On screen** | Approve any story | The preview frame shows it as a lower third; name tags appear top-right for shots of 100 km/h+ and passes of 40 m+. **Copy overlay feed** gives the timed JSON |
+| **Pass quality and speed** | Analyst view, or follow a player | Player card shows pass accuracy, average pass length, difficult passes completed and fastest shot, each with its SQL on hover; power shots become stories |
+| **Public demo isolation** | Open the hosted demo in two browsers | Each has its own matches; approvals in one never appear in the other |
 | **MCP** | `python -m gallery.mcp_server` with an MCP client | Read-only tools return verified stories, provenance, gaps and readiness; no tool can approve |
 | **Newsroom** | Newsroom tab | Workflow diagram, live trace, filter by agent, hide held |
 | **Audit** | Audit log tab | Every decision, the correction, and the superseded row |

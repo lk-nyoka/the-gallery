@@ -23,7 +23,8 @@ if TYPE_CHECKING:
 MODES: dict[str, dict[str, Any]] = {
     "analyst": {
         "label": "Analyst", "depth": "analyst", "max_sentences": None, "show_numbers": True,
-        "detector_boost": {"turning_point": 0.3, "momentum_shift": 0.3, "goal_threat": 0.25, "counterattack": 0.2},
+        "detector_boost": {"turning_point": 0.3, "momentum_shift": 0.3, "goal_threat": 0.25, "counterattack": 0.2,
+                           "power_shot": 0.25},
         "angle": "tactical detail: what changed, by how much, and the evidence",
     },
     "casual": {
@@ -43,6 +44,7 @@ EXPLAINERS = {
     "counterattack": "A counterattack wins the ball deep and reaches the other goal before the defence is set.",
     "goal_threat": "Pressure without a goal: lots of chances, but the breakthrough hasn't come yet.",
     "standout": "A standout performer is the player most involved in the dangerous moments of a spell.",
+    "power_shot": "A power shot is struck at 110 km/h or faster: ball speed measured from the event data.",
 }
 
 
@@ -102,6 +104,19 @@ def player_card(rt: "MatchRuntime", player: str) -> dict:
         if r.actual is None:
             continue
         stats.append({"key": key, "label": label, "value": r.actual, "sql": r.sql, "sql_params": r.sql_params})
+    for key, label, metric, unit in (("pass_acc", "Pass accuracy", "pass_accuracy_pct", "%"),
+                                     ("pass_len", "Avg pass length", "avg_pass_length_m", " m"),
+                                     ("hard_passes", "Difficult passes completed", "hard_passes_completed", ""),
+                                     ("top_speed", "Fastest shot", "max_shot_speed", " km/h")):
+        if metric != "max_shot_speed" and caps.get("passes") is False:
+            continue
+        claim = {"metric": metric, "op": ">=", "value": 0,
+                 "params": {"team_id": team, "player": player, "from_t": 0, "to_t": 1e9}}
+        r = verifier.check_claim(rt.store, rt.match_id, claim)
+        if r.actual is None:
+            continue
+        stats.append({"key": key, "label": label, "value": f"{r.actual:g}{unit}" if isinstance(r.actual, (int, float))
+                      else r.actual, "sql": r.sql, "sql_params": r.sql_params})
     xg = rt.store.query("SELECT ROUND(COALESCE(SUM(xg), 0), 2) AS v FROM events WHERE match_id = ? AND player = ? "
                         "AND type = 'shot'", (rt.match_id, player))[0]["v"]
     if caps.get("xg") is not False:

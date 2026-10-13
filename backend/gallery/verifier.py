@@ -42,6 +42,10 @@ QUALITATIVE = [
 ]
 
 # Words that declare a result. Mid-match they are false even when every number is true, so a human checks them.
+# House style for a league-operated surface: no abuse, blame, speculation about officials, or betting talk.
+POLICY_WORDS = re.compile(r"\b(robbed|cheat(?:s|ed|ing)?|disgrace(?:ful)?|shambles|pathetic|embarrass(?:ing|ment)|"
+                          r"scandal(?:ous)?|bottled|chok(?:e|ed|ing)|clueless|useless|sack(?:ed|ing)?|div(?:e|ed|ing)|"
+                          r"odds|bet(?:s|ting)?|punters?|accumulator|wager)\b", re.I)
 RESULT_WORDS = re.compile(r"\b((?:wins?|won)(?!\s+(?:it|the ball|possession|back|a corner|a free|a penalty|the penalty|"
                           r"the duel|the header))|victory|victorious|beats?|beaten|defeat(?:s|ed)?|triumph(?:s|ed)?|clinch(?:es|ed)?|"
                           r"seal(?:s|ed)? the|three points)\b", re.I)
@@ -54,7 +58,8 @@ NUMBER_WORDS = {
 }
 
 TOLERANCE = {"team_stat": 0.5, "possession_pct": 1.0, "threat_share_pct": 1.0, "seconds_between": 1.0, "xg_sum": 0.02,
-             "shot_xg": 0.01}
+             "shot_xg": 0.01, "shot_speed": 0.5, "max_shot_speed": 0.5, "pass_accuracy_pct": 1.0,
+             "avg_pass_length_m": 0.5}
 
 
 @dataclass
@@ -168,6 +173,54 @@ def _xg_sum(match_id: str, p: dict):
     return sql, [match_id, p["team_id"], p["from_t"], p["to_t"]], ex
 
 
+def _shot_speed(match_id: str, p: dict):
+    sql = "SELECT speed AS value FROM events WHERE match_id = ? AND event_id = ?"
+    return sql, [match_id, p["event_id"]], lambda rows: rows[0]["value"] if rows else None
+
+
+def _who(p: dict) -> tuple[str, list]:
+    if p.get("player"):
+        return " AND player = ?", [p["player"]]
+    return "", []
+
+
+def _max_shot_speed(match_id: str, p: dict):
+    extra, ex_params = _who(p)
+    sql = (f"SELECT MAX(speed) AS value, COUNT(*) AS n, COUNT(speed) AS with_speed FROM events WHERE match_id = ? "
+           f"AND team_id = ? AND type = 'shot' AND t BETWEEN ? AND ?{extra}")
+
+    def ex(rows):
+        r = rows[0]
+        return None if r["n"] == 0 or r["with_speed"] == 0 else r["value"]
+    return sql, [match_id, p["team_id"], p["from_t"], p["to_t"], *ex_params], ex
+
+
+def _pass_accuracy(match_id: str, p: dict):
+    """Completed passes as a percentage of all passes (team or one player) in a window."""
+    extra, ex_params = _who(p)
+    sql = (f"SELECT ROUND(100.0 * SUM(outcome = 'complete') / COUNT(*)) AS value, COUNT(*) AS n FROM events "
+           f"WHERE match_id = ? AND team_id = ? AND type = 'pass' AND t BETWEEN ? AND ?{extra}")
+    return sql, [match_id, p["team_id"], p["from_t"], p["to_t"], *ex_params], \
+        lambda rows: None if not rows or rows[0]["n"] == 0 else int(rows[0]["value"])
+
+
+def _avg_pass_length(match_id: str, p: dict):
+    extra, ex_params = _who(p)
+    sql = (f"SELECT ROUND(AVG(pass_length_m(x, y, end_x, end_y)), 1) AS value, COUNT(end_x) AS n FROM events "
+           f"WHERE match_id = ? AND team_id = ? AND type = 'pass' AND t BETWEEN ? AND ?{extra}")
+    return sql, [match_id, p["team_id"], p["from_t"], p["to_t"], *ex_params], \
+        lambda rows: None if not rows or rows[0]["n"] == 0 else rows[0]["value"]
+
+
+def _hard_passes(match_id: str, p: dict):
+    """Completed passes rated 7 or more out of 10 for difficulty (length, progress, into the box, switches)."""
+    extra, ex_params = _who(p)
+    sql = (f"SELECT COUNT(*) AS value, COUNT(end_x) AS n FROM events WHERE match_id = ? AND team_id = ? "
+           f"AND type = 'pass' AND outcome = 'complete' AND pass_difficulty(x, y, end_x, end_y) >= 7 "
+           f"AND t BETWEEN ? AND ?{extra}")
+    return sql, [match_id, p["team_id"], p["from_t"], p["to_t"], *ex_params], lambda rows: rows[0]["value"]
+
+
 def _team_stat(match_id: str, p: dict):
     """Official team stats published by the feed (e.g. full-match possession)."""
     sql = "SELECT value FROM match_stats WHERE match_id = ? AND team_id = ? AND stat = ?"
@@ -186,6 +239,11 @@ CATALOGUE = {
     "shot_outcome": (_shot_outcome, ["event_id"]),
     "shot_xg": (_shot_xg, ["event_id"]),
     "xg_sum": (_xg_sum, ["team_id", "from_t", "to_t"]),
+    "shot_speed": (_shot_speed, ["event_id"]),
+    "max_shot_speed": (_max_shot_speed, ["team_id", "from_t", "to_t"]),
+    "pass_accuracy_pct": (_pass_accuracy, ["team_id", "from_t", "to_t"]),
+    "avg_pass_length_m": (_avg_pass_length, ["team_id", "from_t", "to_t"]),
+    "hard_passes_completed": (_hard_passes, ["team_id", "from_t", "to_t"]),
 }
 
 ROW_PREVIEW_SQL = ("SELECT event_id, minute, team_id, type, outcome, player, x, y FROM events "
@@ -324,6 +382,10 @@ def check_text(text: str, claims: list[dict], english: bool = True) -> tuple[Opt
     for n in numbers_in(text, english_words=english):
         if round(n, 2) not in allowed and not any(abs(n - a) <= 0.01 for a in allowed):
             return f"The sentence says {n:g}, but none of its claims supports that number.", None
+    pol = POLICY_WORDS.search(text)
+    if pol:
+        return None, (f"Editorial policy: '{pol.group(0)}' is inflammatory, speculative or betting language. "
+                      f"A producer must approve or rewrite it.")
     res = RESULT_WORDS.search(text)
     if res:
         return None, (f"Talks about the result ('{res.group(0)}'). Numbers check out, but a producer should confirm "

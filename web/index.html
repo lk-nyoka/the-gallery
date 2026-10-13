@@ -166,6 +166,19 @@
     </section>
 
     <section class="col centre">
+      <div class="panel onscreen">
+        <div class="panel-h"><h2>On screen</h2><span class="hint">what viewers would see, from the overlay feed</span></div>
+        <div class="frame" id="frame" aria-live="polite">
+          <div class="bug"><span id="fbHome">HOM</span><b id="fbScore">0–0</b><span id="fbAway">AWY</span><span class="bug-clock" id="fbClock">00:00</span></div>
+          <div class="ptag hidden" id="fTag"><span class="ptag-name"></span><span class="ptag-val"></span></div>
+          <div class="l3 hidden" id="fL3"><div class="l3-team"></div><div class="l3-body"><div class="l3-head"></div><div class="l3-sub"></div></div></div>
+          <p class="frame-empty" id="fEmpty">Approve a story and it appears here as an on-screen graphic.</p>
+        </div>
+        <div class="frame-foot">
+          <small>Only stories you approve go on screen. Name tags fire on their own for shots of 100 km/h or more and completed passes of 40 m or more.</small>
+          <button class="btn ghost" id="copyOverlay" title="Copy the timed overlay feed (JSON) a graphics engine would read">Copy overlay feed</button>
+        </div>
+      </div>
       <div id="readiness" class="readiness"></div>
       <div id="impact" class="impact hidden"></div>
 
@@ -269,6 +282,7 @@
         <dt>Show stories for</dt><dd>Who the stories are for. Brazil and South Africa get a different lead story and their own language. <b>A single fan</b> lets you pick casual or analyst depth, a favourite club and a player to follow.</dd>
         <dt>Build package</dt><dd>Gathers every approved story into what a studio needs at the break: script, graphics data, clip times, recap and a social post, plus the rights terms.</dd>
         <dt>Test tools</dt><dd><b>Plant 2 false sentences</b> makes the AI writer slip a labelled lie into its next two drafts, so you can watch the checker stop it.</dd>
+        <dt>On screen</dt><dd>What viewers would see: the score bug, approved stories as lower thirds, and automatic name tags when a shot passes 100 km/h or a pass passes 40 m. <b>Copy overlay feed</b> gives the timed data a graphics system would read.</dd>
         <dt>Readiness</dt><dd>One score for "can we go to the break?": enough approved stories, every goal and red card covered, no outstanding corrections.</dd>
         <dt>Who is on top</dt><dd>Attacking threat per minute for each team, with goals and red cards marked. The sentence under it says what the last ten minutes looked like.</dd>
       </dl>

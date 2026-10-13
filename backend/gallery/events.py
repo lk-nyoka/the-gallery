@@ -52,6 +52,7 @@ class Event:
     xg: Optional[float] = None
     source: str = "replay"
     clock: Optional[float] = None   # official match clock in seconds (2nd half starts at 45:00); t is elapsed
+    speed: Optional[float] = None   # ball speed in km/h (passes and shots), when the feed has it
     raw: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -72,6 +73,30 @@ def validate(e: Event) -> None:
         raise ValueError(f"shot needs outcome in {sorted(SHOT_OUTCOMES)}")
     if e.t < 0:
         raise ValueError("t must be >= 0")
+
+
+PITCH_LENGTH_M, PITCH_WIDTH_M = 105.0, 68.0
+
+
+def pass_length_m(x, y, ex, ey) -> Optional[float]:
+    """Distance of a pass in metres on a 105 x 68 m pitch."""
+    if None in (x, y, ex, ey):
+        return None
+    return round((((ex - x) * PITCH_LENGTH_M / 100) ** 2 + ((ey - y) * PITCH_WIDTH_M / 100) ** 2) ** 0.5, 1)
+
+
+def pass_difficulty(x, y, ex, ey) -> Optional[float]:
+    """0-10 difficulty rating: longer, more forward, into the box and cross-field switches are harder."""
+    length = pass_length_m(x, y, ex, ey)
+    if length is None:
+        return None
+    forward_m = max(0.0, (ex - x) * PITCH_LENGTH_M / 100)
+    score = 1.0 + length / 9 + forward_m / 12
+    if in_box(ex, ey):
+        score += 2.5
+    if abs(ey - y) >= 40:
+        score += 1.5
+    return round(min(10.0, score), 1)
 
 
 def in_box(x: Optional[float], y: Optional[float]) -> bool:

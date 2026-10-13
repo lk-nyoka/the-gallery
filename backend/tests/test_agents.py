@@ -457,3 +457,78 @@ def test_small_model_writes_headlines_only_and_the_verifier_checks_them():
     for s in rt.storylines.values():
         if "47 goals" in s["headline"]:
             assert s["headline_verdict"] == verifier.BLOCKED     # invented number never verified
+
+
+# ---------------------------------------------------------------- pass quality and speed
+def test_ball_speed_and_pass_quality_are_verifiable(fx_a):
+    rt, _ = fx_a
+    shot = next(e for e in rt.store.events(rt.match_id) if e["type"] == "shot" and e["speed"])
+    ok = verifier.check_claim(rt.store, rt.match_id, {"metric": "shot_speed", "params": {"event_id": shot["event_id"]},
+                                                       "op": "==", "value": shot["speed"]})
+    bad = verifier.check_claim(rt.store, rt.match_id, {"metric": "shot_speed", "params": {"event_id": shot["event_id"]},
+                                                        "op": "==", "value": shot["speed"] + 20})
+    assert ok.ok and not bad.ok
+    acc = verifier.check_claim(rt.store, rt.match_id, {"metric": "pass_accuracy_pct", "op": ">=", "value": 0,
+                                                        "params": {"team_id": "HOME", "from_t": 0, "to_t": 1e9}})
+    passes = [e for e in rt.store.events(rt.match_id) if e["type"] == "pass" and e["team_id"] == "HOME"]
+    expect = round(100 * sum(e["outcome"] == "complete" for e in passes) / len(passes))
+    assert abs(acc.actual - expect) <= 1
+
+
+def test_power_shot_story_verifies():
+    from gallery.agents.contracts import StoryCommission
+    rt, _ = play("A", red_team=False)
+    ins = next(i for i in rt.insights if i["detector"] == "power_shot")
+    c = StoryCommission(commission_id="ps1", match_id=rt.match_id, phase="live", insight_id=ins["insight_id"],
+                        brief="power shot", commissioned_by="producer")
+    b = run_async(rt.analyst.brief(c))
+    d = run_async(rt.writer_agent.draft(c, b, version=1))
+    assert "km/h" in d.headline
+    assert rt.toolbox.submit_story_for_verification(d).verdict == verifier.VERIFIED
+
+
+def test_editorial_policy_words_need_a_producer(fx_a):
+    _, human = verifier.check_text("Northbridge were robbed by the referee.", [])
+    assert human and "Editorial policy" in human
+    _, human = verifier.check_text("The odds on a comeback are shortening.", [])
+    assert human and "Editorial policy" in human
+
+
+def test_overlay_feed_has_only_approved_stories_and_threshold_tags():
+    from gallery import overlays
+    rt, _ = play("A", approve=True, red_team=False)
+    fd = overlays.feed(rt)
+    stories = [c for c in fd["cues"] if c["kind"] == "story"]
+    tags = [c for c in fd["cues"] if c["kind"] == "player_tag"]
+    assert stories and all(rt.storylines[c["storyline_id"]]["status"] == "approved" for c in stories)
+    assert tags and all(c["duration_s"] > 0 and c["player"] for c in tags)
+    assert [c["start_t"] for c in fd["cues"]] == sorted(c["start_t"] for c in fd["cues"])
+
+
+def test_public_demo_gives_each_visitor_their_own_matches(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from gallery import app as app_mod
+    monkeypatch.setattr(app_mod, "PUBLIC_DEMO", True)
+    monkeypatch.setattr(app_mod, "runtimes", {})
+    c = TestClient(app_mod.app)
+    a = c.post("/api/matches", json={"mode": "fixture", "fixture": "A"}, headers={"X-Gallery-Session": "alice"}).json()
+    c.post("/api/matches", json={"mode": "fixture", "fixture": "B"}, headers={"X-Gallery-Session": "bob"})
+    mine = [m["match_id"] for m in c.get("/api/matches", headers={"X-Gallery-Session": "alice"}).json()]
+    assert mine == [a["match_id"]]
+    assert c.get(f"/api/matches/{a['match_id']}", headers={"X-Gallery-Session": "bob"}).status_code == 404
+    assert c.post("/api/matches", json={"mode": "espn", "espn_id": "1"},
+                  headers={"X-Gallery-Session": "bob"}).status_code == 403
+    for _ in range(4):
+        c.post("/api/matches", json={"mode": "fixture", "fixture": "C"}, headers={"X-Gallery-Session": "bob"})
+    assert len(c.get("/api/matches", headers={"X-Gallery-Session": "bob"}).json()) == app_mod.MAX_PER_VISITOR
+
+
+def test_overlay_endpoint_is_served(fx_a, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from gallery import app as app_mod
+    rt, _ = fx_a
+    monkeypatch.setitem(app_mod.runtimes, rt.match_id, rt)
+    r = TestClient(app_mod.app).get(f"/api/matches/{rt.match_id}/overlays")
+    assert r.status_code == 200 and "cues" in r.json()

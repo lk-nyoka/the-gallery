@@ -6,7 +6,9 @@ Run:  uvicorn gallery.app:app --reload   (from the backend folder)
 from __future__ import annotations
 
 import asyncio
+import time
 from contextlib import asynccontextmanager
+from contextvars import ContextVar
 import itertools
 import json
 import os
@@ -18,7 +20,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import benchmark, espn, filefeed, fixtures, governance, live, llm, personalise, statsbomb, synth
+from . import benchmark, espn, filefeed, fixtures, governance, live, llm, overlays, personalise, statsbomb, synth
 from .engine import MatchRuntime
 from .events import Event
 from .store import Store
@@ -126,7 +128,7 @@ class PackageReq(BaseModel):
 # --------------------------------------------------------------------------- helpers
 def rt_or_404(match_id: str) -> MatchRuntime:
     rt = runtimes.get(match_id)
-    if not rt:
+    if not rt or not _mine(rt):
         raise HTTPException(404, f"match {match_id} not found")
     return rt
 
@@ -149,6 +151,8 @@ app.mount("/static", StaticFiles(directory=WEB), name="static")
 
 def validation_enabled() -> bool:
     """Real-match sources (ESPN, StatsBomb) are for private validation only: off unless switched on."""
+    if os.getenv("PUBLIC_DEMO", "").strip().lower() in ("1", "true", "yes", "on"):
+        return False
     return os.getenv("ENABLE_VALIDATION_SOURCES", "").strip().lower() in ("1", "true", "yes", "on")
 
 
@@ -156,18 +160,70 @@ def validation_enabled() -> bool:
 def health() -> dict:
     p = llm.provider()
     return {"ok": True, "writer": p.label(), "model": p.describe(),
-            "matches": list(runtimes), "validation_sources": validation_enabled()}
+            "matches": len(runtimes), "validation_sources": validation_enabled(), "public_demo": PUBLIC_DEMO}
+
+
+# ------------------------------------------------------------------ public demo: one sandbox per visitor
+PUBLIC_DEMO = os.getenv("PUBLIC_DEMO", "").strip().lower() in ("1", "true", "yes", "on")
+MAX_PER_VISITOR, MAX_MATCHES = 3, 40
+_owner: ContextVar[str] = ContextVar("owner", default="local")
+_created: dict[str, float] = {}
+
+
+@app.middleware("http")
+async def _visitor(request, call_next):
+    """In public mode every browser gets its own matches (X-Gallery-Session), so visitors never see each
+    other's approvals. Locally everything belongs to one owner."""
+    sid = request.headers.get("x-gallery-session", "")
+    token = _owner.set(sid[:64] if PUBLIC_DEMO and sid else "local")
+    try:
+        return await call_next(request)
+    finally:
+        _owner.reset(token)
+
+
+def _drop(mid: str) -> None:
+    rt = runtimes.pop(mid, None)
+    replay_events.pop(mid, None)
+    replay_corrections.pop(mid, None)
+    _created.pop(mid, None)
+    if rt:
+        for task in (getattr(rt, "replay_task", None), getattr(rt, "live_task", None)):
+            if task and not task.done():
+                task.cancel()
+        store.delete_match_data(mid)
+
+
+def _mine(rt: MatchRuntime) -> bool:
+    return not PUBLIC_DEMO or getattr(rt, "owner", "local") == _owner.get()
 
 
 @app.get("/api/matches")
 def list_matches() -> list[dict]:
     return [{"match_id": k, "names": v.names, "mode": v.mode, "now_t": v.now_t, "score": v.score(),
              "date": v.meta.get("date"), "state": v.meta.get("state")}
-            for k, v in runtimes.items()]
+            for k, v in runtimes.items() if _mine(v)]
 
 
 @app.post("/api/matches")
 async def create_match(req: NewMatch) -> dict:
+    if PUBLIC_DEMO and req.mode not in ("fixture", "replay", "file", "live"):
+        raise HTTPException(403, "This public demo runs synthetic matches only.")
+    snap = await _create_match(req)
+    mid = snap["match_id"]
+    runtimes[mid].owner = _owner.get()
+    _created[mid] = time.time()
+    if PUBLIC_DEMO:
+        mine = sorted((m for m, r in runtimes.items() if getattr(r, "owner", "") == _owner.get()),
+                      key=lambda m: _created.get(m, 0))
+        for old in mine[:-MAX_PER_VISITOR]:
+            _drop(old)
+        for old in sorted(runtimes, key=lambda m: _created.get(m, 0))[:-MAX_MATCHES]:
+            _drop(old)
+    return snap
+
+
+async def _create_match(req: NewMatch) -> dict:
     n = next(_match_ids)
     overrides = {k: v.model_dump() for k, v in (req.markets or {}).items()}
     if req.mode in ("espn", "real") and not validation_enabled():
@@ -504,6 +560,12 @@ async def set_viewer(match_id: str, req: ViewerReq) -> dict:
             "explainers": personalise.EXPLAINERS}
 
 
+@app.get("/api/matches/{match_id}/overlays")
+def overlay_feed(match_id: str, market: str = "world") -> dict:
+    """Timed, machine-readable overlay cues for a graphics engine (approved stories + threshold player tags)."""
+    return overlays.feed(rt_or_404(match_id), market)
+
+
 @app.get("/api/matches/{match_id}/readiness")
 def readiness(match_id: str, phase: str = "half_time") -> dict:
     """Go / no-go for the next editorial moment (half_time | full_time)."""
@@ -543,6 +605,8 @@ def audit(match_id: str) -> list[dict]:
 @app.get("/api/benchmark")
 async def get_benchmark(refresh: bool = False) -> JSONResponse:
     path = ROOT / "backend" / "benchmark_results.json"
+    if PUBLIC_DEMO:
+        refresh = False          # the public demo serves the committed benchmark run
     if not refresh and path.exists():
         return JSONResponse(json.loads(path.read_text()))
     res = await benchmark.run()

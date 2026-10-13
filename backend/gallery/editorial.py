@@ -23,11 +23,13 @@ BASE_IMPORTANCE = {
     "counterattack": 0.70,
     "goal_threat": 0.65,
     "standout": 0.60,
+    "power_shot": 0.55,
 }
 
 VISUAL = {  # does a ready graphic template exist for this story?
     "turning_point": 1.0, "red_card": 1.0,
     "goal": 1.0, "counterattack": 1.0, "momentum_shift": 1.0, "standout": 0.8, "goal_threat": 0.8,
+    "power_shot": 0.9,
 }
 
 FACTOR_LABEL = {
@@ -46,6 +48,7 @@ DETECTOR_LABEL = {
     "counterattack": "Counterattack",
     "goal_threat": "Pressure without a goal",
     "standout": "Standout performer",
+    "power_shot": "Power shot",
 }
 
 
@@ -146,6 +149,8 @@ def metric_summary(ins: dict, names: dict[str, str]) -> str:
                 f"(before: {m['up_shots_before']} v {m['down_shots_before']})")
     if d == "goal_threat":
         return f"{team}: {m['shots']} shots, {m['on_target']} on target, no goal"
+    if d == "power_shot":
+        return f"{(ins['players'] or ['?'])[0]} ({team}): shot at {m['speed']} km/h, {m['outcome'].replace('_', ' ')}"
     return d
 
 

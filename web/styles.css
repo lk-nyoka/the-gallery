@@ -547,3 +547,28 @@ h3 { font: 600 14px/1.3 Barlow, system-ui, sans-serif; margin: 18px 0 8px; }
 }
 .hovercard h5 { text-transform: none; letter-spacing: 0; font-size: 12.5px; color: var(--text); }
 .hovercard h5.verified { color: var(--ok); } .hovercard h5.needs_human { color: var(--warn); } .hovercard h5.blocked { color: var(--bad); }
+
+/* on-screen preview: a broadcast frame fed by the overlay cues */
+.onscreen .frame { position: relative; aspect-ratio: 16 / 9; max-height: 220px; width: 100%; border-radius: 8px; overflow: hidden;
+  background: repeating-linear-gradient(90deg, #1d3a2a 0 9%, #20402e 9% 18%), #1d3a2a; border: 1px solid var(--line-2); }
+.onscreen .frame::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, transparent 40%, rgba(0,0,0,.45)); pointer-events: none; }
+.bug { position: absolute; top: 10px; left: 10px; z-index: 2; display: flex; align-items: center; font: 600 13px/1 var(--cond); border-radius: 4px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+.bug span { background: #12161C; color: #fff; padding: 5px 7px; }
+.bug #fbHome { box-shadow: inset 3px 0 0 var(--home); }
+.bug #fbAway { box-shadow: inset -3px 0 0 var(--away); }
+.bug b { background: #fff; color: #12161C; padding: 5px 7px; font-weight: 700; }
+.bug .bug-clock { background: #252C37; color: var(--muted); }
+.ptag { position: absolute; top: 10px; right: 10px; z-index: 2; display: flex; border-radius: 4px; overflow: hidden; font: 600 13px/1 var(--cond); animation: slidein .35s ease-out; }
+.ptag-name { background: #12161C; color: #fff; padding: 6px 8px; }
+.ptag-val { background: var(--warn); color: #1A1406; padding: 6px 8px; }
+.l3 { position: absolute; left: 4%; right: 4%; bottom: 7%; z-index: 2; display: flex; border-radius: 4px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,.45); animation: slidein .4s ease-out; }
+.l3-team { width: 8px; flex: none; }
+.l3-body { background: rgba(18,22,28,.94); padding: 8px 12px; min-width: 0; }
+.l3-head { font: 700 clamp(14px, 1.6vw, 19px)/1.15 var(--cond); color: #fff; }
+.l3-sub { font-size: 12px; color: #C9D1DB; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.l3.stale { opacity: .55; }
+.frame-empty { position: absolute; inset: auto 0 38% 0; text-align: center; color: rgba(255,255,255,.75); font-size: 13px; margin: 0; z-index: 2; }
+.frame-foot { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-top: 8px; }
+.frame-foot small { color: var(--muted); font-size: 12px; }
+@keyframes slidein { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ptag, .l3 { animation: none; } }

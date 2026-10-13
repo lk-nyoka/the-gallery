@@ -11,7 +11,7 @@ import threading
 import time
 from typing import Any, Iterable, Optional
 
-from .events import Event
+from .events import Event, pass_difficulty, pass_length_m
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS matches (
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS events (
     t REAL NOT NULL, period INTEGER NOT NULL, minute INTEGER NOT NULL,
     team_id TEXT NOT NULL, type TEXT NOT NULL, outcome TEXT,
     player TEXT, x REAL, y REAL, end_x REAL, end_y REAL, xg REAL,
-    source TEXT NOT NULL, clock REAL
+    source TEXT NOT NULL, clock REAL, speed REAL
 );
 CREATE INDEX IF NOT EXISTS ix_events_match_t ON events(match_id, t);
 CREATE TABLE IF NOT EXISTS insights (
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS packages (
 """
 
 EVENT_COLS = ["event_id", "match_id", "t", "period", "minute", "team_id", "type", "outcome",
-              "player", "x", "y", "end_x", "end_y", "xg", "source", "clock"]
+              "player", "x", "y", "end_x", "end_y", "xg", "source", "clock", "speed"]
 
 
 class Store:
@@ -78,8 +78,13 @@ class Store:
         self.lock = threading.RLock()
         self.conn = sqlite3.connect(path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
+        self.conn.create_function("pass_length_m", 4, pass_length_m, deterministic=True)
+        self.conn.create_function("pass_difficulty", 4, pass_difficulty, deterministic=True)
         with self.lock:
             self.conn.executescript(SCHEMA)
+            cols = {r[1] for r in self.conn.execute("PRAGMA table_info(events)")}
+            if "speed" not in cols:      # databases created before ball-speed data existed
+                self.conn.execute("ALTER TABLE events ADD COLUMN speed REAL")
             self.conn.commit()
 
     # ---- generic helpers -------------------------------------------------

@@ -54,6 +54,10 @@ Record every decision that changes scope, design or pitch. Newest at the bottom.
 | D42 | 12 Oct | **Readiness score, rights envelope, correction impact** (deterministic summaries) | Makes the producer's go/no-go and downstream risk visible; cheap, honest, testable | A full rights-management service |
 | D43 | 12 Oct | **MCP server, read-only** | Lets Copilot and other agents reuse verified intelligence without any write path | Write tools (approve/publish) over MCP |
 | D44 | 12 Oct | **Foundry Local in a child process, headline-only for small models** | In-process inference stalled the server; 0.5b can't follow the claim schema but can write a short headline the verifier can check | Dropping the on-device model; a bigger model the laptop can't run |
+| D45 | 13 Oct | **Overlay feed + on-screen preview**: approved stories become timed cues; player tags fire on thresholds (shot ≥ 100 km/h, pass ≥ 40 m) | Challenge stage "render"; tags are computed from events so they need no approval | Free-text graphics written by the model |
+| D46 | 13 Oct | **Pass quality and ball speed** as verifier metrics; synthetic speeds seeded per event id so existing fixtures don't change | Challenge feature list (pass quality, speed metrics); reproducible benchmark | Re-generating fixtures |
+| D47 | 13 Oct | **Editorial policy words** (inflammatory, speculative, betting) need a producer | League-operated surfaces need house style, not just facts | Hard blocking (a producer may quote them in context) |
+| D48 | 13 Oct | **Public demo on a free host** (Docker + Render blueprint), one sandbox per visitor, real-match sources forced off | Judges need a link that always works; visitors must not see each other's decisions | Shared single state; paid hosting |
 
 ## Open questions
 

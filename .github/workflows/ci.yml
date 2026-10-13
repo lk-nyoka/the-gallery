@@ -54,12 +54,12 @@ jobs:
         run: docker build -t the-gallery:ci .
       - name: Start it and check health, readiness and security headers
         run: |
-          docker run -d --name g -p 8000:8000 the-gallery:ci
+          docker run -d --name gallery-ci -p 8000:8000 the-gallery:ci
           for i in $(seq 1 30); do curl -fsS localhost:8000/readyz && break; sleep 2; done
           curl -fsS localhost:8000/healthz
-          curl -fsSI localhost:8000/ | tee headers.txt
+          curl -fsS -D headers.txt -o /dev/null localhost:8000/ && cat headers.txt
           grep -qi "content-security-policy" headers.txt
           grep -qi "x-content-type-options: nosniff" headers.txt
           curl -fsS -X POST localhost:8000/api/matches/default -H "X-Gallery-Session: ci" | grep -q match_id
-          docker logs g | tail -5
-          docker inspect --format '{{.Config.User}}' g | grep -q gallery
+          docker logs gallery-ci | tail -5
+          docker inspect --format '{{.Config.User}}' gallery-ci | grep -q gallery

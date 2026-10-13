@@ -260,6 +260,8 @@ async def _edge(request: Request, call_next):
             response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         if request.url.path.startswith("/api/"):
             response.headers.setdefault("Cache-Control", "no-store")
+        else:   # console files: always revalidate (ETag) so a deploy never leaves a browser on old JavaScript
+            response.headers.setdefault("Cache-Control", "no-cache")
         response.headers["X-Request-Id"] = rid
         return response
     finally:

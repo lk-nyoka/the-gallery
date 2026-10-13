@@ -29,7 +29,9 @@ def test_security_headers_and_request_id(client):
 def test_console_page_has_no_inline_script(client):
     """The CSP forbids inline scripts, so the console must load all JS from files."""
     import re
-    html = client.get("/").text
+    page = client.get("/")
+    assert page.headers["cache-control"] == "no-cache"
+    html = page.text
     for tag in re.findall(r"<script[^>]*>", html):
         assert "src=" in tag, tag
 

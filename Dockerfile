@@ -1,5 +1,5 @@
 # The Gallery: production image (synthetic data, template writer, one sandbox per visitor)
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PUBLIC_DEMO=1 MODEL_PROVIDER=template LOG_JSON=1

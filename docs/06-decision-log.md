@@ -65,6 +65,8 @@ Record every decision that changes scope, design or pitch. Newest at the bottom.
 | D53 | 13 Oct | **The console sets itself up per user** (production, league/club, fan) with a first-visit welcome and a guided tour per role | Three very different users; one cluttered screen served none of them well | Separate apps |
 | D54 | 13 Oct | **Fans see only proven sentences**, without producer approval, labelled as such | A fan companion has no producer; safety comes from the verifier, not the button | Auto-approving stories |
 | D55 | 13 Oct | **Transparent browser-source graphics page + `?s=` session in links** | OBS, vMix, Wirecast and CasparCG all take a browser source, and none can set headers; writes still need the header | Native plugins per vendor |
+| D56 | 14 Oct | **Live 2D pitch in On screen**: ball and the player on it from event x/y; teammates in team shape (listed slot pulled toward their real average position, shifting with ball and possession); shirt numbers from the team sheet; goal and red-card flashes | Viewers and producers want to see the play, not just text | Inventing player tracks (the feed has none; labelled as team shape) |
+| D57 | 14 Oct | **Score sent with an event now includes that event** (detectors run before publish) | The scoreboard trailed a goal by one event | — |
 
 ## Open questions
 

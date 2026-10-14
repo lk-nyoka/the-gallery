@@ -117,7 +117,7 @@
         S.rankings = s.rankings; S.funnel = s.funnel;
         S.events.forEach((e) => e.player && S.players[e.team_id]?.add(e.player));
         S.trace = s.trace || []; S.provider = s.provider; S.storyTrace = {};
-        setupMode(); if (ROLE.now === "fan") applyFan(); break;
+        setupMode(); pitchLoad(); if (ROLE.now === "fan") applyFan(); break;
       }
       case "trace": {
         const t = msg.trace; S.trace.push(t); if (S.trace.length > 600) S.trace.splice(0, S.trace.length - 600);
@@ -129,6 +129,7 @@
       case "event":
         if (S.viewer?.player) refreshPlayer();
         S.events.push(msg.event); S.snap.now_t = msg.now_t; S.snap.now_clock = msg.now_clock; S.snap.score = msg.score;
+        pitchEvent(msg.event);
         if (msg.event.player) S.players[msg.event.team_id]?.add(msg.event.player);
         break;
       case "undo":
@@ -254,7 +255,7 @@
     const passes = S.events.length - key.length;
     $("eventCount").textContent = `${key.length} key${passes ? ` · ${passes} passes` : ""}`;
     const label = (e) => {
-      const who = e.player ? ` · ${e.player}` : "";
+      const who = e.player ? ` · #${shirt(e.type === "own_goal" ? (e.team_id === "HOME" ? "AWAY" : "HOME") : e.team_id, e.player)} ${e.player}` : "";
       if (e.type === "shot") return (e.outcome === "goal" ? "GOAL" : `Shot (${e.outcome.replace("_", " ")})`) + who + (e.speed ? ` · ${Math.round(e.speed)} km/h` : "");
       if (e.type === "own_goal") return "OWN GOAL" + who;
       if (e.type === "card") return (e.outcome === "red" ? "RED CARD" : "Yellow card") + who;
@@ -394,10 +395,10 @@
     const cur = OV.showing;
     const tag = cur && cur.kind === "player_tag" ? cur : null;
     $("fTag").classList.toggle("hidden", !tag);
-    if (tag) { $("fTag").querySelector(".ptag-name").textContent = tag.player; $("fTag").querySelector(".ptag-val").textContent = tag.fields.value; }
+    if (tag) { $("fTag").querySelector(".ptag-name").textContent = `#${shirt(tag.team_id, tag.player)} ${tag.player}`; $("fTag").querySelector(".ptag-val").textContent = tag.fields.value; }
     const story = cur && cur.kind === "story" ? cur : OV.lastStory;
     $("fL3").classList.toggle("hidden", !story); $("fL3").classList.toggle("stale", !!story && story !== cur);
-    $("fEmpty").classList.toggle("hidden", !!story);
+    $("fEmpty").classList.toggle("hidden", !!story || S.events.length > 0);
     if (story) {
       $("fL3").querySelector(".l3-team").style.background = story.team_id === "HOME" ? "var(--home)" : "var(--away)";
       $("fL3").querySelector(".l3-head").textContent = story.headline;
@@ -405,6 +406,152 @@
     }
   }
   setInterval(tickOverlay, 300);
+
+  // ------------------------------------------------------------------ live 2D pitch (inside the On screen frame)
+  // The ball and the player on it follow the event feed exactly (event x/y and pass end points).
+  // The feed has no tracking data, so everyone else is drawn in team shape: their listed position,
+  // pulled toward where they have actually played so far, shifting with the ball and possession.
+  const P = { el: null, players: {}, ball: { x: 50, y: 50, path: [], t0: 0 }, last: null, stats: {}, lineups: { HOME: [], AWAY: [] },
+    num: {}, off: new Set(), poss: "HOME", flashUntil: 0, active: null, built: null, trail: null };
+  const PX = (x) => 14 + (x / 100) * 132, PY = (y) => 4 + (y / 100) * 82;
+  // shape slots in team-sheet order. The synthetic squads have no goalkeeper (all eleven play outfield; the
+  // generator uses players 2-5 as defenders and 6-11 in attack), so #1 sits in front of the back four.
+  const SLOTS = [[31, 50], [18, 15], [15, 38], [15, 62], [18, 85], [44, 24], [47, 50], [44, 76], [64, 18], [70, 50], [64, 82]];
+  const reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const pteam = (e) => (e.type === "own_goal" ? (e.team_id === "HOME" ? "AWAY" : "HOME") : e.team_id);   // an own goal is credited to the other side
+  const toPitch = (team, x, y) => (team === "AWAY" ? [100 - x, 100 - y] : [x, y]);
+  const hash = (s) => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); };
+  function shirt(team, player) {
+    if (!player) return "";
+    const k = team + "|" + player;
+    if (!P.num[k]) { const list = P.lineups[team] || (P.lineups[team] = []); list.push({ player, number: list.length + 1 }); P.num[k] = list.length; }
+    return P.num[k];
+  }
+  function pitchMarkup() {
+    const L = (x1, y1, x2, y2) => `<line x1="${PX(x1)}" y1="${PY(y1)}" x2="${PX(x2)}" y2="${PY(y2)}"/>`;
+    const R = (x1, y1, x2, y2) => `<rect x="${PX(x1)}" y="${PY(y1)}" width="${PX(x2) - PX(x1)}" height="${PY(y2) - PY(y1)}"/>`;
+    const bx = 15.7, by = 20.4, sx = 5.2, sy = 36.8;     // box depths/widths as % of a 105 x 68 m pitch
+    let s = `<g class="pm">${R(0, 0, 100, 100)}${L(50, 0, 50, 100)}<circle cx="${PX(50)}" cy="${PY(50)}" r="${(9.15 / 105) * 132}"/>
+      ${R(0, by, bx, 100 - by)}${R(100 - bx, by, 100, 100 - by)}${R(0, sy, sx, 100 - sy)}${R(100 - sx, sy, 100, 100 - sy)}
+      <rect class="goal" x="${PX(0) - 2.2}" y="${PY(44.6)}" width="2.2" height="${PY(55.4) - PY(44.6)}"/><rect class="goal" x="${PX(100)}" y="${PY(44.6)}" width="2.2" height="${PY(55.4) - PY(44.6)}"/>
+      <circle class="spot" cx="${PX(50)}" cy="${PY(50)}" r=".5"/><circle class="spot" cx="${PX(10.5)}" cy="${PY(50)}" r=".5"/><circle class="spot" cx="${PX(89.5)}" cy="${PY(50)}" r=".5"/></g>
+      <line class="trail" id="pTrail" x1="0" y1="0" x2="0" y2="0"/><g id="pPlayers"></g>
+      <g id="pBall"><circle class="ball-sh" r="1.7" cy=".5"/><circle class="ball" r="1.35"/></g>`;
+    return s;
+  }
+  function pitchSetup() {
+    const svg = $("pitch"); if (!svg) return;
+    P.el = svg; svg.innerHTML = pitchMarkup();
+    P.trail = $("pTrail");
+  }
+  function pitchLoad() {
+    if (!S.snap) return;
+    if (!P.el) pitchSetup();
+    P.lineups = JSON.parse(JSON.stringify(S.snap.lineups || { HOME: [], AWAY: [] }));
+    P.num = {}; P.stats = {}; P.off = new Set(); P.players = {}; P.flashUntil = 0; $("goalFlash").classList.add("hidden");
+    for (const t of ["HOME", "AWAY"]) (P.lineups[t] || []).forEach((r) => (P.num[t + "|" + r.player] = r.number));
+    S.events.forEach((e) => pitchCount(e));
+    const last = [...S.events].reverse().find((e) => e.x != null);
+    if (last) { const [x, y] = toPitch(last.team_id, last.end_x ?? last.x, last.end_y ?? last.y); Object.assign(P.ball, { x, y, path: [] }); P.poss = last.team_id; P.active = pteam(last) + "|" + last.player; }
+    else Object.assign(P.ball, { x: 50, y: 50, path: [] });
+    pitchPlayers(true);
+  }
+  function pitchCount(e) {
+    if (e.player) shirt(pteam(e), e.player);
+    if (e.type === "card" && e.outcome === "red") P.off.add(e.team_id + "|" + e.player);
+    if (!e.player || e.x == null) return;
+    const k = pteam(e) + "|" + e.player, [x, y] = toPitch(e.team_id, e.x, e.y);
+    const st = P.stats[k] || (P.stats[k] = { sx: 0, sy: 0, n: 0 }); st.sx += x; st.sy += y; st.n++;
+  }
+  function pitchPlayers(snap) {
+    const g = $("pPlayers"); if (!g) return;
+    let html = "";
+    for (const t of ["HOME", "AWAY"]) {
+      (P.lineups[t] || []).slice(0, 11).forEach((r) => {
+        const k = t + "|" + r.player;
+        if (!P.players[k]) P.players[k] = { x: 50, y: 50, team: t, slot: Math.min(10, r.number - 1), number: r.number, name: r.player };
+        if (P.off.has(k)) return;
+        html += `<g class="pl ${t === "HOME" ? "home" : "away"}" data-k="${esc(k)}"><circle r="2.7"/><text y=".95">${r.number}</text><text class="pn" y="-3.6"></text></g>`;
+      });
+    }
+    g.innerHTML = html;
+    P.nodes = {}; g.querySelectorAll(".pl").forEach((n) => (P.nodes[n.dataset.k] = n));
+    if (snap) { pitchTargets(); for (const p of Object.values(P.players)) { p.x = p.tx; p.y = p.ty; } }
+  }
+  function pitchTargets() {
+    const b = P.ball;
+    for (const [k, p] of Object.entries(P.players)) {
+      let [sx, sy] = SLOTS[p.slot] || [50, 50];
+      if (p.team === "AWAY") [sx, sy] = [100 - sx, 100 - sy];
+      const st = P.stats[k];
+      if (st && st.n >= 4) { const w = Math.min(0.5, st.n / 40); sx = sx * (1 - w) + (st.sx / st.n) * w; sy = sy * (1 - w) + (st.sy / st.n) * w; }
+      const gk = false, dir = p.team === "HOME" ? 1 : -1;
+      const att = P.poss === p.team ? 10 : -6;
+      let tx = sx + (gk ? 0.08 : 0.32) * (b.x - 50) + (gk ? 0 : dir * att), ty = sy + (gk ? 0.15 : 0.28) * (b.y - 50);
+      if (k === P.active) { tx = b.path.length ? b.path[0][0] : b.x; ty = b.path.length ? b.path[0][1] : b.y; tx -= dir * 1.6; }
+      p.tx = Math.max(1, Math.min(99, tx)); p.ty = Math.max(2, Math.min(98, ty));
+    }
+  }
+  function shotEnd(e) {
+    const r = (hash(e.event_id) % 100) / 100;
+    if (e.outcome === "goal") return [101.8, 46 + r * 8];
+    if (e.outcome === "on_target") return [99.2, 44 + r * 12];
+    if (e.outcome === "off_target") return [101.5, r < 0.5 ? 38 - r * 20 : 62 + (r - 0.5) * 20];
+    return [Math.min(97, e.x + 5), e.y + (r - 0.5) * 6];   // blocked
+  }
+  function pitchEvent(e) {
+    if (!P.el) return;
+    pitchCount(e);
+    if (e.player && !P.players[pteam(e) + "|" + e.player]) pitchPlayers(false);
+    if (e.type === "card" && e.outcome === "red") { pitchPlayers(false); flash("RED CARD", e); return; }
+    if (e.type === "kick_off" || e.type === "period_end") { P.ball.path = [[50, 50]]; P.active = null; P.poss = e.team_id || "HOME"; return; }
+    if (e.x == null) return;
+    P.poss = e.type === "regain" || e.type === "pass" || e.type === "shot" || e.type === "box_entry" ? e.team_id : P.poss;
+    P.active = e.player ? pteam(e) + "|" + e.player : null;
+    const start = toPitch(e.team_id, e.x, e.y);
+    let end = null;
+    if (e.type === "pass" && e.end_x != null) end = toPitch(e.team_id, e.end_x, e.end_y);
+    if (e.type === "shot") { const [x, y] = shotEnd(e); end = toPitch(e.team_id, x, y); }
+    if (e.type === "own_goal") end = toPitch(e.team_id, 101.8, 50);
+    P.ball.path = end ? [start, end] : [start]; P.ball.t0 = performance.now();
+    if (end && P.trail) { P.trail.setAttribute("x1", PX(start[0])); P.trail.setAttribute("y1", PY(start[1])); P.trail.setAttribute("x2", PX(end[0])); P.trail.setAttribute("y2", PY(end[1])); P.trail.classList.toggle("shot", e.type === "shot"); P.trail.style.opacity = 0.8; }
+    if ((e.type === "shot" && e.outcome === "goal") || e.type === "own_goal") flash(e.type === "own_goal" ? "OWN GOAL" : "GOAL", e);
+    const n = P.nodes && P.nodes[P.active]; if (n) n.querySelector(".pn").textContent = e.player || "";
+  }
+  function flash(kind, e) {
+    const f = $("goalFlash"), num = shirt(pteam(e), e.player), sc = { HOME: 0, AWAY: 0 };
+    for (const x of S.events) {     // count from the events themselves, so the flash always includes this goal
+      if (x.type === "shot" && x.outcome === "goal") sc[x.team_id]++;
+      else if (x.type === "own_goal") sc[x.team_id]++;
+    }
+    f.className = "goalflash " + (kind === "RED CARD" ? "red" : "") + " " + (e.team_id === "HOME" ? "home" : "away");
+    f.innerHTML = `<b>${kind}</b><span>${num ? "#" + num + " " : ""}${esc(e.player || "")} · ${esc(S.snap.names[pteam(e)])} · ${fmt(e.clock ?? e.t)}</span>${kind === "RED CARD" ? "" : `<em>${esc(code3(S.snap.names.HOME))} ${sc.HOME}–${sc.AWAY} ${esc(code3(S.snap.names.AWAY))}</em>`}`;
+    P.flashUntil = performance.now() + 2600;
+  }
+  let pLast = performance.now();
+  function pitchFrame(now) {
+    const dt = Math.min(0.1, (now - pLast) / 1000); pLast = now;
+    if (P.el && S.snap) {
+      const b = P.ball;
+      if (b.path.length) {
+        const [tx, ty] = b.path[0], k = reduced ? 1 : Math.min(1, dt * (b.path.length > 1 ? 16 : 11));
+        b.x += (tx - b.x) * k; b.y += (ty - b.y) * k;
+        if (Math.hypot(tx - b.x, ty - b.y) < 0.6 || (b.path.length > 1 && now - b.t0 > 260)) { if (b.path.length === 1) { b.x = tx; b.y = ty; } b.path.shift(); b.t0 = now; }
+      }
+      $("pBall").setAttribute("transform", `translate(${PX(b.x)} ${PY(b.y)})`);
+      if (P.trail) P.trail.style.opacity = Math.max(0, (parseFloat(P.trail.style.opacity) || 0) - dt * 0.9);
+      pitchTargets();
+      const kp = reduced ? 1 : Math.min(1, dt * 3.2);
+      for (const [key, p] of Object.entries(P.players)) {
+        p.x += (p.tx - p.x) * (key === P.active ? Math.min(1, kp * 2.2) : kp); p.y += (p.ty - p.y) * (key === P.active ? Math.min(1, kp * 2.2) : kp);
+        const n = P.nodes && P.nodes[key];
+        if (n) { n.setAttribute("transform", `translate(${PX(p.x)} ${PY(p.y)})`); n.classList.toggle("on", key === P.active); }
+      }
+      $("goalFlash").classList.toggle("hidden", now > P.flashUntil);
+    }
+    requestAnimationFrame(pitchFrame);
+  }
+  requestAnimationFrame(pitchFrame);
 
   // ------------------------------------------------------------------ pipeline strip
   function renderPipe() {

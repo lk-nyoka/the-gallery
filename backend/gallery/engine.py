@@ -93,6 +93,24 @@ class MatchRuntime:
     def score(self) -> dict[str, int]:
         return self.detectors.score_at(self.now_t)
 
+    def lineups(self) -> dict[str, list[dict[str, Any]]]:
+        """Team sheets with shirt numbers. Synthetic matches use the generator's squad list (numbered in the order
+        listed); other feeds use the numbers they carry, or number players in the order they first appear."""
+        from .synth import AWAY_ROSTER, HOME_ROSTER
+        sheet = (self.meta or {}).get("lineups")
+        if sheet:
+            return sheet
+        rows = self.store.query("SELECT player, team_id, MIN(t) AS first FROM events WHERE match_id = ? AND player IS NOT NULL "
+                                "AND player != '' AND type != 'own_goal' GROUP BY player, team_id ORDER BY first", (self.match_id,))
+        out: dict[str, list[dict[str, Any]]] = {"HOME": [], "AWAY": []}
+        for team, roster in (("HOME", HOME_ROSTER), ("AWAY", AWAY_ROSTER)):
+            if self.mode in ("fixture", "replay") and all(r["player"] in roster for r in rows if r["team_id"] == team):
+                out[team] = [{"player": p, "number": i + 1, "listed": True} for i, p in enumerate(roster)]
+            else:
+                names = [r["player"] for r in rows if r["team_id"] == team]
+                out[team] = [{"player": p, "number": i + 1, "listed": False} for i, p in enumerate(names)]
+        return out
+
     def model_status(self) -> str:
         return self.provider.label()
 
@@ -117,6 +135,7 @@ class MatchRuntime:
             "storylines": list(self.storylines.values()),
             "rankings": {m: self.ranking(m) for m in self.markets},
             "events": self.store.events(self.match_id)[-4000:],
+            "lineups": self.lineups(),
             "packages": self.packages,
             "funnel": self.funnel(),
             "replay": {"running": bool(self.replay_task and not self.replay_task.done()),
@@ -131,9 +150,9 @@ class MatchRuntime:
         self.now_t = max(self.now_t, e.t)
         self.now_clock = e.clock if e.clock is not None else self.now_t
         self.period = max(self.period, e.period)
+        new = [i.to_dict() for i in self.detectors.on_event(d)]      # first, so the score below includes this event
         self.publish({"type": "event", "event": d, "score": self.score(), "now_t": self.now_t,
                       "now_clock": self.now_clock})
-        new = [i.to_dict() for i in self.detectors.on_event(d)]
         for ins in new:
             self._save_insight(ins)
             self.insights.append(ins)

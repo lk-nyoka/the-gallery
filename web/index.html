@@ -187,13 +187,15 @@
       <div class="panel onscreen">
         <div class="panel-h"><h2>On screen</h2><span class="hint">what viewers would see, from the overlay feed</span></div>
         <div class="frame" id="frame" aria-live="polite">
+          <svg id="pitch" class="pitch" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Live pitch: ball and players"></svg>
+          <div id="goalFlash" class="goalflash hidden" role="status"></div>
           <div class="bug"><span id="fbHome">HOM</span><b id="fbScore">0–0</b><span id="fbAway">AWY</span><span class="bug-clock" id="fbClock">00:00</span></div>
           <div class="ptag hidden" id="fTag"><span class="ptag-name"></span><span class="ptag-val"></span></div>
           <div class="l3 hidden" id="fL3"><div class="l3-team"></div><div class="l3-body"><div class="l3-head"></div><div class="l3-sub"></div></div></div>
           <p class="frame-empty" id="fEmpty"><span class="pro-only">Approve a story and it appears here as an on-screen graphic.</span><span class="fan-only">Fast shots and long passes get a name tag here automatically.</span></p>
         </div>
         <div class="frame-foot">
-          <small><span class="pro-only">Only stories you approve go on screen. </span>Name tags fire on their own for shots of 100 km/h or more and completed passes of 40 m or more.</small>
+          <small>The ball and the player on it (shirt number from the team sheet) follow the event data; teammates are drawn in team shape, since the feed has no tracking data. <span class="pro-only">Only stories you approve go on screen as graphics. </span>Name tags fire on their own for shots of 100 km/h or more and passes of 40 m or more.</small>
           <button class="btn pro-only" id="outputsBtn" title="Put these graphics into OBS, vMix, Wirecast or CasparCG, or read them as data">Use in your graphics system</button>
         </div>
       </div>

@@ -13,10 +13,11 @@ Live demo: https://the-gallery-dm6q.onrender.com · All clubs, players and match
 1. **Play** a match (or connect your data feed). Events stream in and the chart shows who is on top.
 2. **Stories arrive on their own.** The top three for the last 15 minutes are ranked by code. Click one.
 3. **Check and approve.** Green = every number re-computed from the data. Amber = the numbers are right but a word is a judgement. Red = false or unsupported; it can never air. Hover a sentence for the exact query and events behind it. Press **Approve for air**.
-4. **Put it on screen.** Press **Use in your graphics system** (under *On screen*):
+4. **Watch it on the pitch.** *On screen* shows a live 2D pitch: the ball moves exactly as the event feed describes (passes from start to end point, shots to goal, wide or saved), the player on the ball lights up with his shirt number and name, and goals and red cards flash with the new score. Shirt numbers come from the team sheet in the order players are listed. The feed has no tracking data, so the other players are drawn in team shape: their listed position, pulled toward where they have actually played, shifting with the ball.
+5. **Put it on screen.** Press **Use in your graphics system** (under *On screen*):
    - **Browser source:** a transparent 1920×1080 page with score bug, lower thirds and player tags. In OBS: *Sources → + → Browser*, paste the link, width 1920, height 1080. In vMix: *Add Input → Web Browser*. Works the same in Wirecast and as a CasparCG HTML template. Add `&bug=0` to hide the score bug, `&bg=green` for a chroma key.
    - **Data feed:** the same cues as JSON (start time, duration, template, headline, text, team, fields) for Vizrt, Chyron, Ross or your own system.
-5. **Half-time / Full-time** builds the package: presenter script, graphics data, clip in and out times, recap, social copy, rights terms, and a coverage check that every goal and red card has an approved story. Download it as **Script (.txt)**, **Graphics (.csv)** or **Everything (.json)**.
+6. **Half-time / Full-time** builds the package: presenter script, graphics data, clip in and out times, recap, social copy, rights terms, and a coverage check that every goal and red card has an approved story. Download it as **Script (.txt)**, **Graphics (.csv)** or **Everything (.json)**.
 
 Other markets: **Show stories for** switches to the Brazil (Portuguese) or South Africa (isiZulu) feed, each with its own lead story. Translations are checked again.
 

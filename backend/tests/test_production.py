@@ -135,3 +135,28 @@ def test_graphics_systems_can_pass_the_session_in_the_link(client, monkeypatch):
     assert client.get(f"/api/matches/{mid}/overlays?s=someone-else").status_code == 404
     # writes still need the header
     assert client.post(f"/api/matches/{mid}/replay?s=studio-1", json={"speed": 10}).status_code == 404
+
+
+def test_event_message_score_includes_that_goal():
+    """The live score sent with a goal event must already count that goal (it used to lag one event)."""
+    import asyncio
+
+    from gallery import fixtures
+    from gallery.engine import MatchRuntime
+    from gallery.store import Store
+    f = fixtures.build("A", "tscore")
+    rt = MatchRuntime(Store(), "tscore", f["home"], f["away"], "fixture", use_model=False)
+    rt.red_team_budget = 0
+    sent = []
+    rt.publish = lambda m: sent.append(m)
+    goal = next(e for e in f["events"] if e.type == "shot" and e.outcome == "goal")
+
+    async def go():
+        for e in f["events"]:
+            await rt.ingest(e)
+            if e is goal:
+                break
+    asyncio.run(go())
+    msg = [m for m in sent if m.get("type") == "event" and m["event"]["event_id"] == goal.event_id][0]
+    assert msg["score"][goal.team_id] == 1
+    assert rt.lineups()[goal.team_id][0]["listed"] is True

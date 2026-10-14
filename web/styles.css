@@ -654,3 +654,17 @@ code { font-family: var(--mono); font-size: .92em; background: var(--panel-2); p
 /* lower thirds hug their text instead of stretching across the frame */
 .l3 { right: auto; max-width: 92%; }
 .l3-body { flex: 1; }
+
+/* phones: the score bar wraps instead of pushing the page sideways */
+@media (max-width: 640px) {
+  .scorebug { flex-wrap: wrap; max-width: 100%; justify-self: stretch; }
+  .scorebug .team { font-size: 14px; padding: 8px 9px; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .scorebug .score { font-size: 20px; padding: 6px 10px; }
+  .scorebug .clock { padding: 6px 10px; flex: 1 0 100%; border-left: 0; border-top: 1px solid var(--line-2); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .scorebug .result, .scorebug .livebadge { margin: 4px 10px; }
+  html, body { overflow-x: hidden; }
+}
+@media (max-width: 640px) {
+  #fanCtl .row select { flex: 1 1 40%; }
+  #fanCtl .seg { flex: 1 1 100%; } #fanCtl .seg button { flex: 1; }
+}

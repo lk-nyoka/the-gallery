@@ -15,3 +15,8 @@ backend/data/organiser/*
 !backend/data/organiser/example_synthetic_match.csv
 backend/data/foundry_cache/
 _to_delete/
+
+# demo video and submission material (kept out of the repo)
+submission/
+*.mp4
+*.webm

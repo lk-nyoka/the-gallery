@@ -608,5 +608,12 @@ class MatchRuntime:
         self.publish({"type": "replay_done", "result_check": self.result_check()})
 
     async def drain(self) -> None:
-        while self.pending:
+        """Wait for the newsroom's background work. Finished tasks are pruned here rather than left to their
+        done-callbacks: awaiting a gather of already-finished tasks never yields to the event loop, so those
+        callbacks could never run and this loop used to spin forever, freezing the whole server."""
+        while True:
+            self.pending.difference_update([t for t in self.pending if t.done()])
+            if not self.pending:
+                return
             await asyncio.gather(*list(self.pending), return_exceptions=True)
+            await asyncio.sleep(0)

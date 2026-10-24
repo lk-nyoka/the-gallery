@@ -160,3 +160,22 @@ def test_event_message_score_includes_that_goal():
     msg = [m for m in sent if m.get("type") == "event" and m["event"]["event_id"] == goal.event_id][0]
     assert msg["score"][goal.team_id] == 1
     assert rt.lineups()[goal.team_id][0]["listed"] is True
+
+
+def test_drain_does_not_spin_on_finished_tasks():
+    """A finished task left in `pending` (its done-callback not yet run) must not freeze the event loop."""
+    import asyncio
+
+    from gallery.engine import MatchRuntime
+    from gallery.store import Store
+    rt = MatchRuntime(Store(), "tdrain", "Home FC", "Away FC", "fixture", use_model=False)
+
+    async def go():
+        async def quick():
+            return 1
+        t = asyncio.get_running_loop().create_task(quick())
+        await t                      # finished; its done-callback has not run yet
+        rt.pending.add(t)
+        await asyncio.wait_for(rt.drain(), timeout=2)
+        assert not rt.pending
+    asyncio.run(go())

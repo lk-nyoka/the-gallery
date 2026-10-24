@@ -80,8 +80,10 @@
     sel.value = id; connect(id);
   }
 
+  const INSP_EMPTY = $("inspBody").innerHTML;
   function connect(id) {
     if (S.ws) { S.ws.onclose = null; S.ws.close(); }
+    if (id !== S.matchId) { $("inspBody").className = "insp-empty"; $("inspBody").innerHTML = INSP_EMPTY; $("inspTitle").textContent = ""; }   // no story from the previous match
     Object.assign(S, { matchId: id, events: [], insights: {}, storylines: {}, rankings: {}, selected: null, whyNot: {}, viewer: null, playerCard: null });
     if (S.market === "viewer") { S.market = "world"; $("audienceSel").value = "world"; setAudienceHelp(); }
     const proto = location.protocol === "https:" ? "wss" : "ws";

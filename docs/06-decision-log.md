@@ -70,6 +70,7 @@ Record every decision that changes scope, design or pitch. Newest at the bottom.
 | D58 | 24 Oct | **Trimmed the desk**: removed the duplicate agent panel, the second story list no longer repeats the top stories, match-data panel folds away, package shows rights in plain words (JSON stays in the download), writer badge only when a model is configured | A full review found clutter that slowed first-time users | — |
 | D59 | 24 Oct | **All-rights-reserved LICENSE**, no open-source licence | Official Rules: the entrant keeps ownership and grants Microsoft and the Premier League a non-exclusive licence; an open licence would give everyone else rights too | MIT |
 | D60 | 24 Oct | **Dependency update PRs closed and paused until 20 Nov** | Judging 27 Oct – 10 Nov, winners by 20 Nov; three of the open PRs would have broken the build | Merging them before submission |
+| D61 | 24 Oct | **Fixed a server freeze in `drain()`**: finished agent tasks are pruned before waiting, and the loop yields | Awaiting a gather of already-finished tasks never yields, so their clean-up callbacks never ran and the server spun forever (found while recording the demo; regression test added) | — |
 
 ## Open questions
 
@@ -108,3 +109,4 @@ Record every decision that changes scope, design or pitch. Newest at the bottom.
 | 13 Oct | D49–D52: production hardening; docs/09-operations.md and SECURITY.md added | "Make it production ready" |
 | 13 Oct | D53–D55: role-based console, fan mode, graphics outputs and downloads; docs/10-user-guide.md | "Make it easy for the Premier League, fans and production companies" |
 | 24 Oct | D58–D60: full review, desk trimmed, screenshots and demo script refreshed, LICENSE, update PRs paused | "Full run on the app and the project" |
+| 24 Oct | D61: drain freeze fixed; story panel resets when switching matches | Found while recording the demo video |

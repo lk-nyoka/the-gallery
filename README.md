@@ -6,7 +6,7 @@
 
 The Gallery is a newsroom of AI agents for live football coverage, with one rule none of them can break: **numbers come from code, words come from the model, and every word must point back to a number.** In practice: every factual claim is re-computed from the event data, and judgement wording is allowed only when it is flagged for a human to check. Agents commission, research, write, adapt and correct stories; deterministic code checks every claim; a human producer decides what goes on air; and each viewer gets the same verified facts shaped for them.
 
-**▶ Live demo: [the-gallery-dm6q.onrender.com](https://the-gallery-dm6q.onrender.com)** · no sign-up, your own sandbox. Free hosting: if it has been idle, the first load can take up to a minute.
+**▶ Demo video (1:57): [docs/media/the-gallery-demo.mp4](docs/media/the-gallery-demo.mp4)** · **▶ Live demo: [the-gallery-dm6q.onrender.com](https://the-gallery-dm6q.onrender.com)** · no sign-up, your own sandbox. Free hosting: if it has been idle, the first load can take up to a minute.
 
 > Built for **Inside the Game: Developer Hackathon** (Microsoft, October 2026). All data in this repository is synthetic: fictional clubs, fictional players.
 

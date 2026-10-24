@@ -215,7 +215,7 @@
       rb.title = "At full time the score rebuilt from the events is compared with the fixture's known result.";
     } else rb.className = "result hidden";
     renderFeedPanel();
-    renderFeed(); renderMomentum(); renderQueue(); renderInspector(); renderMiniTrace(); renderPipe();
+    renderFeed(); renderMomentum(); renderQueue(); renderInspector(); renderPipe();
     if (S.tab === "trust") renderTrust();
     if (S.tab === "newsroom") renderNewsroom();
     $("traceCount").textContent = S.trace.length ? S.trace.length : "";
@@ -396,7 +396,7 @@
     const tag = cur && cur.kind === "player_tag" ? cur : null;
     $("fTag").classList.toggle("hidden", !tag);
     if (tag) { $("fTag").querySelector(".ptag-name").textContent = `#${shirt(tag.team_id, tag.player)} ${tag.player}`; $("fTag").querySelector(".ptag-val").textContent = tag.fields.value; }
-    const story = cur && cur.kind === "story" ? cur : OV.lastStory;
+    const story = cur && cur.kind === "story" ? cur : null;
     $("fL3").classList.toggle("hidden", !story); $("fL3").classList.toggle("stale", !!story && story !== cur);
     $("fEmpty").classList.toggle("hidden", !!story || S.events.length > 0);
     if (story) {
@@ -516,7 +516,7 @@
     P.ball.path = end ? [start, end] : [start]; P.ball.t0 = performance.now();
     if (end && P.trail) { P.trail.setAttribute("x1", PX(start[0])); P.trail.setAttribute("y1", PY(start[1])); P.trail.setAttribute("x2", PX(end[0])); P.trail.setAttribute("y2", PY(end[1])); P.trail.classList.toggle("shot", e.type === "shot"); P.trail.style.opacity = 0.8; }
     if ((e.type === "shot" && e.outcome === "goal") || e.type === "own_goal") flash(e.type === "own_goal" ? "OWN GOAL" : "GOAL", e);
-    const n = P.nodes && P.nodes[P.active]; if (n) n.querySelector(".pn").textContent = e.player || "";
+    const n = P.nodes && P.nodes[P.active]; if (n) { n.querySelector(".pn").textContent = e.player || ""; n.parentNode.appendChild(n); }
   }
   function flash(kind, e) {
     const f = $("goalFlash"), num = shirt(pteam(e), e.player), sc = { HOME: 0, AWAY: 0 };
@@ -592,14 +592,16 @@
     $("queue").innerHTML = top.length ? top.map(({ r, s }) => card(s, r, false)).join("")
       : `<div class="empty">${S.events.length ? (fan ? "Nothing big in the last 15 minutes. Stories appear here the moment something happens." : "Watching… no story in the last 15 minutes yet.") : (S.snap.mode === "live" ? "Press Kick-off, then log events as you watch." : S.snap.mode === "real" ? `Real match: ${esc(S.snap.meta.date || "")} · ${esc(S.snap.meta.stadium || "")}. Press Play to replay it event by event.` : fan ? "Press ▶ Play to watch the match unfold. This is a made-up match, replayed event by event." : "Press Play to start the replay.")}</div>`;
     const f = S.funnel || {};
-    $("queueNote").textContent = S.market === "viewer" && S.viewer
+    $("queueNote").textContent = fan ? (S.viewer?.club || S.viewer?.player ? `${[S.viewer.club && S.snap.names[S.viewer.club], S.viewer.player].filter(Boolean).join(" and ")} first.` : "The biggest moment of the last 15 minutes.")
+      : S.market === "viewer" && S.viewer
       ? `What ${fanLabel()} would see: the same checked stories, re-ordered and trimmed for them.`
       : S.market !== "world" ? `The strongest checked stories for the ${({ br: "Brazil", za: "South Africa" })[S.market]} feed. The lead story changes with the audience.`
       : "The three strongest checked stories from the last 15 minutes, ranked by code. Click one to review it.";
     $("funnel").textContent = `${f.insights || 0} insights → ${f.storylines || 0} storylines → ${f.verified || 0} verified · ${f.flagged || 0} flagged · ${f.blocked || 0} blocked → ${f.approved || 0} approved`;
     const rankById = Object.fromEntries((S.rankings[S.market] || []).map((r) => [r.insight_id, r]));
-    const list = Object.values(S.storylines).filter((s) => s.market === "world" && (!fan || fanSafe(s))).sort((a, b) => b.minute - a.minute || b.created_at - a.created_at);
-    $("allStories").innerHTML = list.map((w) => card(S.market === "world" ? w : (storyFor(w.insight_id) || w), rankById[w.insight_id], true)).join("") || `<div class="empty">No storylines yet.</div>`;
+    const shown = new Set(top.map(({ s }) => s.storyline_id));   // the top stories are already on screen above
+    const list = Object.values(S.storylines).filter((s) => s.market === "world" && !shown.has(s.storyline_id) && (!fan || fanSafe(s))).sort((a, b) => b.minute - a.minute || b.created_at - a.created_at);
+    $("allStories").innerHTML = list.map((w) => card(S.market === "world" ? w : (storyFor(w.insight_id) || w), rankById[w.insight_id], true)).join("") || `<div class="empty">${S.events.length ? "Nothing else yet." : "No stories yet."}</div>`;
   }
 
   function card(s, r, compact) {
@@ -706,8 +708,8 @@
 
     const repl = replacementOf(s);
     const banner = s.status === "superseded" ? `<div class="corr">Replaced by a corrected version. This one can no longer be approved. <button class="btn ghost small" data-goto="${s.superseded_by}">Open the correction</button></div>`
-      : s.status === "needs_correction" ? `<div class="corr">⚠ The data behind this approved story changed. ${repl ? `The Corrections agent drafted v-next (${esc(repl.overall.replace("_", " "))}). Approve it to replace this one on air.` : "The Corrections agent is re-drafting it."} ${repl ? `<button class="btn ghost small" data-goto="${repl.storyline_id}">Review the correction</button>` : ""}</div>`
-      : s.supersedes ? `<div class="corr fix">Correction of ${esc(s.supersedes)}. Approving it takes the old version off air. <button class="btn ghost small" data-goto="${s.supersedes}">See the old version</button></div>` : "";
+      : s.status === "needs_correction" ? `<div class="corr">⚠ The data behind this approved story changed. ${repl ? `The Corrections agent drafted a corrected version (${esc(VLABEL[repl.overall] || repl.overall).toLowerCase()}). Approve it to replace this one on air.` : "The Corrections agent is re-drafting it."} ${repl ? `<button class="btn ghost small" data-goto="${repl.storyline_id}">Review the correction</button>` : ""}</div>`
+      : s.supersedes ? `<div class="corr fix">Corrected version of “${esc(S.storylines[s.supersedes]?.headline || "an earlier story")}”. Approving it takes the old version off air. <button class="btn ghost small" data-goto="${s.supersedes}">See the old version</button></div>` : "";
     const commission = s.commissioned_by ? `<div class="small muted" style="margin-top:6px">Commissioned by <b>${esc(AGENT_LABEL[s.commissioned_by] || s.commissioned_by)}</b>: ${esc(s.brief || "")}${s.commission_reason ? ` <span class="faint">(${esc(s.commission_reason)})</span>` : ""}</div>` : "";
     $("inspBody").className = "insp";
     $("inspBody").innerHTML = `${banner}
@@ -818,7 +820,19 @@
       ${(p.needs_correction || []).length ? `<div class="corr">⚠ ${p.needs_correction.length} approved stor${p.needs_correction.length === 1 ? "y is" : "ies are"} now contradicted by the data and left out: ${esc(p.needs_correction.join("; "))}</div>` : ""}`;
     $("pkgBody").innerHTML = `<div>${covHtml}${p.note ? `<div class="empty">${esc(p.note)}</div>` : items}</div>
       <div><h4 style="margin-top:0">Recap</h4><div>${esc(p.recap)}</div><h4>Social copy</h4><div>${esc(p.social)}</div>
-      <h4>Rights envelope</h4><div class="code">${esc(JSON.stringify(p.rights || {}, null, 2))}</div><h4>Graphics payload (JSON)</h4><div class="code">${esc(JSON.stringify(p.items.map((i) => i.graphic_payload), null, 2))}</div></div>`;
+      <h4>Where it can be used</h4>${rightsSummary(p.rights)}
+      <p class="small muted">The full rights terms and graphics data are in <b>Everything (.json)</b>.</p></div>`;
+  }
+  function rightsSummary(r) {
+    if (!r) return `<p class="muted small">No rights terms.</p>`;
+    const words = (xs) => (xs || []).map((x) => x.replace(/_/g, " ")).join(", ");
+    const until = r.expires_at ? new Date(r.expires_at * 1000).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" }) : "–";
+    return `<div class="kv small"><span>Territories</span><span>${esc(words(r.territories))}</span>
+      <span>Surfaces</span><span>${esc(words(r.allowed_surfaces))}</span>
+      <span>Video clips</span><span>${esc(words([r.clip_rights]))}</span>
+      <span>Valid until</span><span>${esc(until)}</span>
+      <span>Approval</span><span>${r.approval_state === "producer_approved" ? "every story approved by a producer" : "nothing approved yet"}</span>
+      <span>Checked</span><span>${esc(r.verification || "")}</span></div>`;
   }
   $("copyPayload").onclick = async () => {
     if (!S.pkg) return;
@@ -920,10 +934,6 @@
       if (S.selected === sid) renderInspector();
     }, 120);
   }
-  function renderMiniTrace() {
-    const rows = S.trace.filter((t) => t.status !== "held").slice(-9).reverse();
-    $("miniTrace").innerHTML = traceRows(rows, false) || `<li class="muted small">Agents start when the first story is detected.</li>`;
-  }
   const FLOW = [
     ["Editor-in-Chief", "picks from code-ranked candidates; goals, red cards, turning points always"],
     ["Analyst", "gathers evidence with read-only tools"],
@@ -953,6 +963,7 @@
     b.textContent = p.status === "ready" && p.provider !== "template" ? `Writer: ${name} (${(p.model || "").split(":")[0].replace(/-instruct.*$/, "")})` : p.selected !== "template" ? `Writer: templates (${name === "template" ? p.selected.replace("_", " ") : name} ${p.status})` : "Writer: templates";
     b.title = p.detail + (p.failures ? ` · ${p.failures} model failures fell back to templates` : "");
     b.className = "badge " + (p.status === "ready" && p.provider !== "template" ? "on" : ["starting", "downloading", "loading"].includes(p.status) ? "busy" : "");
+    b.classList.toggle("hidden", p.selected === "template" && p.provider === "template");   // nothing to report without a model
   }
   async function pollProvider() {
     try { S.provider = await api("/api/model"); renderProvider(); } catch (_) {}

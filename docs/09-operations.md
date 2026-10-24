@@ -31,7 +31,7 @@ Everything is an environment variable with a safe default.
 | `MAX_MATCHES` | `40` | Public mode: matches held in memory in total (oldest go first) |
 | `MAX_MATCHES_PER_VISITOR` | `3` | Public mode: matches per visitor |
 | `API_DOCS` | off in public mode | Serve `/docs` and `/openapi.json` |
-| `APP_VERSION` | `0.3.0` | Reported by `/api/metrics` |
+| `APP_VERSION` | `1.0.0` | Reported by `/api/metrics` |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | unset | Optional: send traces and logs to Azure Application Insights (`pip install -r requirements-observability.txt`) |
 | `ENABLE_VALIDATION_SOURCES` | `0` | Private validation only; forced off in public mode. Never enable on a public host |
 
@@ -48,7 +48,9 @@ docker run -p 8000:8000 -e PORT=8000 the-gallery
 
 The image runs as a non-root user (`gallery`, uid 10001), installs exact versions from `requirements.lock`, has a container `HEALTHCHECK`, honours `PORT`, trusts proxy headers (for HTTPS detection and client IPs) and shuts down gracefully within 10 seconds.
 
-**Free-tier sleep:** free instances sleep after ~15 idle minutes. The *Keep demo awake* workflow pings `DEMO_URL` every 10 minutes. If a visitor does hit a sleeping instance, the console shows "Waking up the demo…" and retries on its own.
+**Keep the demo up through judging:** judging runs 27 Oct – 10 Nov 2026 and winners are announced by 20 Nov, so the live URL and the public repository should stay unchanged until then (dependency update PRs are paused in `.github/dependabot.yml`).
+
+**Free-tier sleep:** free instances sleep after ~15 idle minutes. The *Keep demo awake* workflow asks GitHub to ping `DEMO_URL` every 10 minutes, but GitHub delays scheduled runs (in practice every 3–5 hours), so add a free external monitor (UptimeRobot or cron-job.org) on `/healthz` every 5 minutes. One always-on free service uses about 744 of Render's 750 free hours a month. If a visitor does hit a sleeping instance, the console shows "Waking up the demo…" and retries on its own.
 
 ## 4. Health and monitoring
 

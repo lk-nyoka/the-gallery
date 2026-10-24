@@ -69,7 +69,7 @@
           <option value="archive">Archive match (validation only)</option>
         </select>
       </div>
-      <small>Synthetic matches with fictional clubs. Each fixture tests one thing.</small>
+      <small>Fictional clubs. Each test match shows one thing.</small>
     </div>
 
     <div class="ctl" id="replayControls">
@@ -81,7 +81,6 @@
           <option value="60">60× speed</option><option value="300">300× speed</option>
         </select>
       </div>
-      <small>Plays the match event by event, as if it were live.</small>
     </div>
 
     <div class="ctl hidden" id="liveControls">
@@ -104,7 +103,7 @@
         <select id="fanPlayer" aria-label="A player to follow"><option value="">No player</option></select>
         <span class="seg" id="fanDepth" role="group" aria-label="How much detail"><button type="button" data-v="casual" class="on">Simple</button><button type="button" data-v="analyst">All the stats</button></span>
       </div>
-      <small>Pick your club or a player; their moments come first.</small>
+      <small>Their moments come first.</small>
     </div>
 
     <div class="ctl pro-only">
@@ -126,7 +125,7 @@
         <button class="btn" id="htBtn">Half-time <span id="htCountdown"></span></button>
         <button class="btn" id="ftBtn">Full-time</button>
       </div>
-      <small>Collects approved stories into a script, graphics and recap.</small>
+      <small>Script, graphics and recap from approved stories.</small>
     </div>
 
     <details class="ctl tools pro-only" id="toolsMenu">
@@ -166,26 +165,21 @@
     </section>
     <div class="grid">
     <section class="col left">
-      <div class="panel hidden pro-only" id="feedPanel">
-        <div class="panel-h"><h2 id="feedTitle">About this match</h2><span class="hint" id="feedState"></span></div>
+      <details class="panel hidden pro-only fold" id="feedPanel">
+        <summary class="panel-h"><h2 id="feedTitle">About this match</h2><span class="hint" id="feedState"></span></summary>
         <div class="small" id="feedCaps"></div>
         <div class="kv small" id="teamStats"></div>
-      </div>
+      </details>
 
       <div class="panel grow">
         <div class="panel-h"><h2>Match events</h2><span class="hint" id="eventCount">0</span></div>
         <ol id="feed" class="feed"></ol>
       </div>
-
-      <div class="panel pro-only">
-        <div class="panel-h"><h2>Agents at work</h2><span class="hint">latest first</span></div>
-        <ol id="miniTrace" class="trace mini"></ol>
-      </div>
     </section>
 
     <section class="col centre">
       <div class="panel onscreen">
-        <div class="panel-h"><h2>On screen</h2><span class="hint">what viewers would see, from the overlay feed</span></div>
+        <div class="panel-h"><h2>On screen</h2><span class="hint"><span class="pro-only">what viewers would see</span><span class="fan-only">the match, live</span></span></div>
         <div class="frame" id="frame" aria-live="polite">
           <svg id="pitch" class="pitch" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Live pitch: ball and players"></svg>
           <div id="goalFlash" class="goalflash hidden" role="status"></div>
@@ -195,7 +189,7 @@
           <p class="frame-empty" id="fEmpty"><span class="pro-only">Approve a story and it appears here as an on-screen graphic.</span><span class="fan-only">Fast shots and long passes get a name tag here automatically.</span></p>
         </div>
         <div class="frame-foot">
-          <small>The ball and the player on it (shirt number from the team sheet) follow the event data; teammates are drawn in team shape, since the feed has no tracking data. <span class="pro-only">Only stories you approve go on screen as graphics. </span>Name tags fire on their own for shots of 100 km/h or more and passes of 40 m or more.</small>
+          <small>Ball and player on the ball: from the match data. Teammates: team shape (no tracking data). <span class="pro-only">Only approved stories become graphics.</span></small>
           <button class="btn pro-only" id="outputsBtn" title="Put these graphics into OBS, vMix, Wirecast or CasparCG, or read them as data">Use in your graphics system</button>
         </div>
       </div>
@@ -210,7 +204,7 @@
       <div id="queue" class="queue"></div>
 
       <div class="section-h">
-        <h2><span class="pro-only">All stories</span><span class="fan-only">Earlier in the match</span></h2>
+        <h2><span class="pro-only">More stories</span><span class="fan-only">Earlier in the match</span></h2>
         <p id="funnel" class="pro-only"></p>
       </div>
       <div id="allStories" class="stories"></div>

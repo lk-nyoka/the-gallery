@@ -1,6 +1,6 @@
 # 05 · Demo and Pitch
 
-**Status:** Script v3 (agent workflow), 12 Oct 2026. Video rules: **under 2:00**, public URL (YouTube / Vimeo / Facebook Video / Youku), **no third-party trademarks or copyrighted music**. Use synthetic fixtures only.
+**Status:** Script v4 (roles and live pitch), 24 Oct 2026. Rules: judging 27 Oct – 10 Nov 2026, winners announced by 20 Nov; the repository must be public. Video rules: **under 2:00**, public URL (YouTube / Vimeo / Facebook Video / Youku), **no third-party trademarks or copyrighted music**. Use synthetic fixtures only.
 
 ---
 
@@ -18,13 +18,13 @@ Large on-screen captions throughout: judges may watch muted.
 
 | Time | Screen | Voice-over / caption |
 |---|---|---|
-| 0:00–0:12 | Fixture C, Live desk. Press **Test tools → Plant 2 false sentences**, then ▶ Play at 60×. A story card arrives; Story details → How the agents made it shows **Verifier: blocked (v1)** · *"…looks exhausted…" → unsupported state* | "This AI newsroom just wrote a sentence the data can't support. It never reached the producer." |
+| 0:00–0:12 | Welcome screen → **Production company or broadcaster**, skip the tour. *Load another* → Fixture C. Press **Test tools → Plant 2 false sentences**, then ▶ Play at 60×. A story card arrives; Story details → How the agents made it shows **Verifier: blocked (v1)** · *"…looks exhausted…" → unsupported state* | "This AI newsroom just wrote a sentence the data can't support. It never reached the producer." |
 | 0:12–0:30 | Same trace: **Writer: sent back for revision (1/2)** → **Verifier: verified (v2)** → **Producer: awaiting decision**. Hover a sentence: SQL + event rows | "Agents write. Code checks. Every sentence carries a claim that's re-computed from the match data. No evidence, no airtime." |
-| 0:30–0:50 | **Newsroom** tab: the workflow diagram and the live trace (Editor-in-Chief commissions and holds, Analyst tool calls) | "Built on Microsoft Agent Framework: an Editor-in-Chief commissions, an Analyst gathers evidence with read-only tools, a Writer drafts, and a deterministic Verifier is the only one allowed to say what's true." |
-| 0:50–1:10 | Fixture A at 60×: turning-point story *"The red card that turned the match"*; **Why not?** panel | "It finds the moment that mattered, ranks it with a visible formula, and explains why other stories lost." |
+| 0:30–0:50 | **How the agents worked** tab: the workflow diagram and the live trace (Editor-in-Chief commissions and holds, Analyst tool calls) | "Built on Microsoft Agent Framework: an Editor-in-Chief commissions, an Analyst gathers evidence with read-only tools, a Writer drafts, and a deterministic Verifier is the only one allowed to say what's true." |
+| 0:50–1:10 | Fixture A at 60×: the **On screen** pitch (ball moving as the feed describes, numbered players, GOAL flash at 20'), then the turning-point story *"The red card that turned the match"* and the **Why not?** panel | "It finds the moment that mattered, ranks it with a visible formula, and explains why other stories lost." |
 | 1:10–1:35 | Fixture B at 20×: approve the 29' goal story → feed re-credits the goal → card turns red → **Review the correction** → approve | "Facts change. When the feed re-credits a goal, the approved story is pulled, the Corrections agent drafts a fixed version, and the producer re-approves. Both versions stay in the audit." |
-| 1:35–1:45 | Readiness bar at 100%; **Show stories for → A single fan…** → Casual fan following one player, then Analyst | "The same verified stories, shaped for a casual fan or an analyst, a favourite club or one player." |
-| 1:45–1:55 | **Trust** tab: 0 escapes of 361, 37/37 stopped, 12/12 covered | "Measured, not claimed. The Gallery: no evidence, no airtime." |
+| 1:35–1:45 | Readiness bar at 100%; **Set up for → Fan**: follow the away club and one player, Simple, then All the stats | "The same verified stories, shaped for a casual fan or an analyst, a favourite club or one player." |
+| 1:45–1:55 | **Proof it works** tab: 0 escapes of 374, 37/37 stopped, 12/12 covered | "Measured, not claimed. The Gallery: no evidence, no airtime." |
 
 Only show numbers from your own benchmark run on the recording day.
 
@@ -39,15 +39,16 @@ Only show numbers from your own benchmark run on the recording day.
 **What it does:**
 The Gallery turns a match event feed into producer-ready coverage. Deterministic detectors find momentum shifts, counterattacks, standout performers, goals, red cards and turning points. A newsroom of agents built on Microsoft Agent Framework (Editor-in-Chief, Analyst, Writer, Desk, Corrections, Localiser) turns them into stories. Every factual sentence must carry a structured claim, and a deterministic Verifier re-computes it from the event data; blocked drafts go back to the Writer (max two revisions). A coverage check makes sure every goal and red card is covered, and when the feed corrects an event, approved stories are re-checked, pulled if wrong and replaced after re-approval.
 
-**Microsoft technologies:** Microsoft Agent Framework (workflow, executors, conditional revision loop); Microsoft Foundry Local (on-device model via `foundry-local-sdk`, OpenAI-compatible endpoint); Azure OpenAI / Microsoft Foundry supported as a hosted provider through the same interface; GitHub Actions CI. *(Add GitHub Copilot only if you used it.)*
+**Microsoft technologies:** Microsoft Agent Framework (workflow, executors, conditional revision loop); Microsoft Foundry Local (on-device model via `foundry-local-sdk`, OpenAI-compatible endpoint); Azure OpenAI / Microsoft Foundry supported as a hosted provider through the same interface; GitHub Actions CI; GitHub Copilot in early prototyping.
 
 **What makes it different:**
 1. Agents can't grade their own work: the only verdict comes from code.
 2. True-but-incomplete is a failure: the coverage check catches missing moments.
 3. Living verification: corrections re-check approved stories, with full version history.
 4. Measured: planted-pattern fixtures and red-team drafts with known answers.
+5. Ready to use: the console sets itself up for a production company, a league or club media team, or a fan; approved stories go straight into OBS, vMix, Wirecast or CasparCG as a transparent graphics page, or into any graphics system as a data feed.
 
-**Results:** 0 unsupported claims through (of 361 verified, independently re-computed) · 37/37 planted false claims stopped · 12/12 key moments covered · 1/1 correction caught and replaced · 29/32 planted patterns found.
+**Results:** 0 unsupported claims through (of 374 verified, independently re-computed) · 37/37 planted false claims stopped · 12/12 key moments covered · 1/1 correction caught and replaced · 29/32 planted patterns found.
 
 **Data:** synthetic only; fictional clubs and players.
 

@@ -67,6 +67,9 @@ Record every decision that changes scope, design or pitch. Newest at the bottom.
 | D55 | 13 Oct | **Transparent browser-source graphics page + `?s=` session in links** | OBS, vMix, Wirecast and CasparCG all take a browser source, and none can set headers; writes still need the header | Native plugins per vendor |
 | D56 | 14 Oct | **Live 2D pitch in On screen**: ball and the player on it from event x/y; teammates in team shape (listed slot pulled toward their real average position, shifting with ball and possession); shirt numbers from the team sheet; goal and red-card flashes | Viewers and producers want to see the play, not just text | Inventing player tracks (the feed has none; labelled as team shape) |
 | D57 | 14 Oct | **Score sent with an event now includes that event** (detectors run before publish) | The scoreboard trailed a goal by one event | — |
+| D58 | 24 Oct | **Trimmed the desk**: removed the duplicate agent panel, the second story list no longer repeats the top stories, match-data panel folds away, package shows rights in plain words (JSON stays in the download), writer badge only when a model is configured | A full review found clutter that slowed first-time users | — |
+| D59 | 24 Oct | **All-rights-reserved LICENSE**, no open-source licence | Official Rules: the entrant keeps ownership and grants Microsoft and the Premier League a non-exclusive licence; an open licence would give everyone else rights too | MIT |
+| D60 | 24 Oct | **Dependency update PRs closed and paused until 20 Nov** | Judging 27 Oct – 10 Nov, winners by 20 Nov; three of the open PRs would have broken the build | Merging them before submission |
 
 ## Open questions
 
@@ -104,3 +107,4 @@ Record every decision that changes scope, design or pitch. Newest at the bottom.
 | 12 Oct | Docs v3: D33–D39; README rewritten around the agent newsroom; demo script v3 on synthetic fixtures; real-match references removed from public docs | Official rules (synthetic data) and the 17-step agent plan |
 | 13 Oct | D49–D52: production hardening; docs/09-operations.md and SECURITY.md added | "Make it production ready" |
 | 13 Oct | D53–D55: role-based console, fan mode, graphics outputs and downloads; docs/10-user-guide.md | "Make it easy for the Premier League, fans and production companies" |
+| 24 Oct | D58–D60: full review, desk trimmed, screenshots and demo script refreshed, LICENSE, update PRs paused | "Full run on the app and the project" |

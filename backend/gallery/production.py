@@ -43,7 +43,7 @@ class Settings:
     max_matches: int = field(default_factory=lambda: _int("MAX_MATCHES", 40))
     max_per_visitor: int = field(default_factory=lambda: _int("MAX_MATCHES_PER_VISITOR", 3))
     api_docs: bool = field(default_factory=lambda: _flag("API_DOCS", not _flag("PUBLIC_DEMO")))
-    version: str = field(default_factory=lambda: os.getenv("APP_VERSION", "0.3.0"))
+    version: str = field(default_factory=lambda: os.getenv("APP_VERSION", "1.0.0"))
     commit: str = field(default_factory=lambda: os.getenv("RENDER_GIT_COMMIT", os.getenv("GIT_COMMIT", "dev"))[:12])
 
 

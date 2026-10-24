@@ -44,10 +44,6 @@ button, input, select { font: inherit; color: inherit; }
   padding: 12px 18px; border-bottom: 1px solid var(--line); gap: 16px;
 }
 .brand { display: flex; gap: 10px; align-items: center; }
-.brand-mark {
-  width: 22px; height: 22px; border-radius: 6px;
-  background: conic-gradient(from 210deg, var(--home), var(--ok), var(--away), var(--home));
-}
 .brand-name { font-weight: 700; letter-spacing: -0.01em; font-size: 15px; }
 .brand-tag { color: var(--muted); font-size: 11.5px; }
 .scoreboard { display: flex; align-items: baseline; gap: 12px; font-weight: 600; }
@@ -62,12 +58,9 @@ button, input, select { font: inherit; color: inherit; }
 .badge { font: 11px var(--mono); color: var(--muted); border: 1px solid var(--line); padding: 4px 8px; border-radius: 6px; }
 
 /* ---------- sub bar ---------- */
-.subbar { display: flex; justify-content: space-between; align-items: center; padding: 8px 18px; border-bottom: 1px solid var(--line); gap: 12px; flex-wrap: wrap; }
 .tabs { display: flex; gap: 4px; }
 .tab { background: transparent; border: 0; padding: 6px 10px; border-radius: 6px; color: var(--muted); cursor: pointer; }
 .tab.on { background: var(--panel-2); color: var(--text); }
-.matchbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.divider { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
 select, .clock-input, .player-input, dialog input {
   background: var(--panel); border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px;
 }
@@ -92,7 +85,6 @@ select, .clock-input, .player-input, dialog input {
 
 /* momentum */
 .momentum { width: 100%; height: 120px; display: block; }
-.legend { display: flex; gap: 6px; align-items: center; color: var(--muted); margin-top: 6px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 .dot.home { background: var(--home); } .dot.away { background: var(--away); margin-left: 10px; }
 
@@ -662,7 +654,7 @@ code { font-family: var(--mono); font-size: .92em; background: var(--panel-2); p
   .scorebug .score { font-size: 20px; padding: 6px 10px; }
   .scorebug .clock { padding: 6px 10px; flex: 1 0 100%; border-left: 0; border-top: 1px solid var(--line-2); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .scorebug .result, .scorebug .livebadge { margin: 4px 10px; }
-  html, body { overflow-x: hidden; }
+  body { overflow-x: clip; }
 }
 @media (max-width: 640px) {
   #fanCtl .row select { flex: 1 1 40%; }
@@ -696,3 +688,8 @@ code { font-family: var(--mono); font-size: .92em; background: var(--panel-2); p
 .l3 { bottom: 4%; }
 .frame-empty { inset: auto 0 6% 0; }
 @media (prefers-reduced-motion: reduce) { .goalflash { animation: none; } }
+details.fold > summary { list-style: none; cursor: pointer; margin-bottom: 0; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary h2::before { content: "▸ "; color: var(--faint); }
+details.fold[open] > summary { margin-bottom: 8px; }
+details.fold[open] > summary h2::before { content: "▾ "; }

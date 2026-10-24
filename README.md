@@ -12,7 +12,7 @@ The Gallery is a newsroom of AI agents for live football coverage, with one rule
 
 ![The live desk during a synthetic match](docs/screenshots/gallery.png)
 
-The console reads top to bottom: the **pipeline strip** says where every story is (events → agents draft → code checks → you approve → package), the **controls** each carry a one-line caption, **Who is on top** shows each team's attacking threat with goals and red cards marked and a plain-English summary of the last ten minutes, and **How it works** explains every control and mark.
+The first visit asks who you are (production company, league or club media team, or fan) and sets the screen up for you; **Tour** walks through it in under a minute. Then it reads top to bottom: the **pipeline strip** says where every story is (events → agents draft → code checks → you approve → package), **Who is on top** shows each team's attacking threat with a plain-English summary of the last ten minutes, **On screen** is a live pitch where the ball moves exactly as the event feed describes and every player carries his team-sheet number, and **How it works** explains every control and mark.
 
 ---
 
@@ -67,7 +67,7 @@ Plus **data innovation** (fixtures with planted patterns and truth files) and **
 | **Measures pass quality and speed** | Pass distance, accuracy and difficulty, ball and shot speed: each a verifier metric with its own SQL, shown on the analyst view and the player card. |
 | **Knows when it's ready** | A half-time / full-time readiness score: approved stories, coverage, outstanding corrections, markets. |
 
-| Casual fan, supporting the away side and following one player | Analyst view of the same match |
+| Fan view: following the away side, plain words | Fan view with all the stats, following one player |
 |---|---|
 | ![](docs/screenshots/viewer_casual.png) | ![](docs/screenshots/viewer_analyst.png) |
 
@@ -156,6 +156,7 @@ Momentum detection is tuned for precision over recall: every detection inside a 
 | **Model Context Protocol** | `gallery.mcp_server`: read-only tools so Copilot or any MCP agent can use verified stories, provenance and coverage gaps, but never approve or publish |
 | **Azure OpenAI / Microsoft Foundry** | Optional hosted model, same interface (`MODEL_PROVIDER=azure_openai`) |
 | **GitHub Actions** | CI on Python 3.12 and 3.13: lint, tests, benchmark smoke test, data-policy check, `pip-audit`, Docker image smoke test |
+| **GitHub Copilot** | Used in the early prototyping stage |
 | Python · FastAPI · SQLite · Pydantic | Engine, API, typed agent contracts |
 | Vanilla JS (no build step) | Producer console |
 
@@ -227,7 +228,7 @@ cd backend && python -m gallery.mcp_server     # stdio; reads from the running a
 
 Tools: `list_matches`, `get_match_state`, `get_verified_storylines`, `get_storyline_provenance`, `get_coverage_gaps`, `get_readiness`, `get_corrections`, `get_player_card`. All read-only.
 
-**Try it:** press ▶ Play. Pick fixture B from *Load another* to see a correction and its impact; press **Test tools → Plant 2 false sentences** to watch the Verifier catch a false sentence and the Writer revise it; click **Show stories for → A single fan…** to switch to a casual-fan or analyst view, pick a club or follow a player; open the **Newsroom** tab for the trace.
+**Try it:** pick **Production** on the welcome screen and press ▶ Play. Pick fixture B from *Load another* to see a correction and its impact; press **Test tools → Plant 2 false sentences** to watch the Verifier catch a false sentence and the Writer revise it; open **How the agents worked** for the trace. Switch to **Set up for → Fan** to follow a club or a player.
 
 ## Tests
 
@@ -278,6 +279,10 @@ cd backend && python -m gallery.benchmark --quick
 | [`08-differentiation.md`](docs/08-differentiation.md) | How this differs from existing tools |
 | [`09-operations.md`](docs/09-operations.md) | Configuration, deploy, monitoring, limits, incident runbook |
 | [`10-user-guide.md`](docs/10-user-guide.md) | Quick starts for producers, league media teams and fans; graphics setup; other sports |
+
+## Licence
+
+Copyright © 2026 Lindokuhle Nyoka. All rights reserved; see [`LICENSE`](LICENSE). The code is public so it can be reviewed and judged; under the hackathon's official rules the entrant keeps ownership and Microsoft and the Premier League receive a non-exclusive licence to the submission. Third-party packages (FastAPI, Microsoft Agent Framework and others) are installed from PyPI under their own open-source licences and are not copied into this repository.
 
 ## Team
 

@@ -1,0 +1,16 @@
+Copyright (c) 2026 Lindokuhle Nyoka. All rights reserved.
+
+This repository is public so that the project can be reviewed and judged in the
+Microsoft + Premier League "Inside the Game" Developer Hackathon. Under the
+hackathon's Official Rules, the entrant keeps ownership of the submission and
+grants the Promotion Entities a worldwide, perpetual, irrevocable, royalty-free,
+fully paid-up, non-exclusive licence to it. No other licence is granted: you may
+view and run the code to evaluate it, but you may not copy, modify, distribute
+or use it commercially without written permission from the copyright holder.
+
+Third-party software (for example FastAPI, Pydantic, Uvicorn and Microsoft Agent
+Framework) is installed from package registries under its own open-source
+licences and is not part of this licence. All clubs, players and match data in
+this repository are synthetic and fictional.
+
+Contact: https://github.com/lk-nyoka

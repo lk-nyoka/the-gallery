@@ -1,12 +1,16 @@
+# Version updates are paused during hackathon judging (until 20 Nov 2026) so nothing changes under the live demo.
+# Security updates still arrive. Restore open-pull-requests-limit afterwards.
 version: 2
 updates:
   - package-ecosystem: pip
     directory: "/"
     schedule: { interval: weekly }
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
   - package-ecosystem: github-actions
     directory: "/"
     schedule: { interval: monthly }
+    open-pull-requests-limit: 0
   - package-ecosystem: docker
     directory: "/"
     schedule: { interval: monthly }
+    open-pull-requests-limit: 0
